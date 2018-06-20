@@ -1,0 +1,109 @@
+Index: create_validation_data.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- create_validation_data.py	(date 1529526482000)
++++ create_validation_data.py	(revision 1ca1c3d5ba3de66240e66aeffb93070c1448ab12)
+@@ -2,16 +2,10 @@
+ import numpy as np
+ import shutil
+ from load_images import standardize_file_name
+-from natsort import natsorted # use this for hard sorting
++from natsort import natsorted # for hard sorting
+ 
+ 
+ def create_folder(data_dir, folder_name):
+-    """
+-    This function is used to create folder
+-
+-    :param: data_dir:     path where you want to put your folder
+-    :param: folder_name:  name of the folder you want to create
+-    """
+     if not os.path.exists(data_dir + '/' + folder_name):
+         os.makedirs(data_dir + '/' + folder_name)
+     else:
+@@ -59,8 +53,8 @@
+     val_data_path_class_1 = '/home/tianyi/Desktop/skin/validate/malignant'
+ 
+     # standardize file name is both training class_0 and 1 folder
+-    standardize_file_name(cls=0, folder_dir=train_data_path_class_0, file_format=".jpg")
+-    standardize_file_name(cls=1, folder_dir=train_data_path_class_1, file_format=".jpg")
++    standardize_file_name(cls=0, folder_path=train_data_path_class_0, file_format=".jpg")
++    standardize_file_name(cls=1, folder_path=train_data_path_class_1, file_format=".jpg")
+ 
+     # split class_0 training data
+     split_and_move_training_data(train_dir=train_data_path_class_1, val_dir=val_data_path_class_1, portion=0.4)
+Index: read_tfrecord.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- read_tfrecord.py	(date 1529524438000)
++++ read_tfrecord.py	(revision 1ca1c3d5ba3de66240e66aeffb93070c1448ab12)
+@@ -2,15 +2,11 @@
+ import numpy as np
+ import matplotlib.pyplot as plt
+ 
++data_path = '/home/tianyi/Desktop/data_blur/CERTH_ImageBlurDataset/TrainingSet/train.tfrecords'
++image_pixel = 224
+ 
+-def read_tfrecord(tfrecord_path, pixel):
+-    """
+-    This function is used to TFRecord files and extract image and its respective label information
+ 
+-    :param: tfrecord_path:  path of the TFRecord file
+-    :param: pixel:          pixel of the original image used to create this TFRecord file
+-                            (found in 'read_image_mat' module in 'load_images.py'
+-    """
++def read_tfrecord(tfrecord_path):
+     with tf.Session() as sess:
+         feature = {'image': tf.FixedLenFeature([], tf.string),
+                    'label': tf.FixedLenFeature([], tf.int64)}
+@@ -32,7 +28,7 @@
+         label = tf.cast(features['label'], tf.int32)
+ 
+         # Reshape image data into the original shape
+-        image = tf.reshape(image, [pixel, pixel, 3])
++        image = tf.reshape(image, [image_pixel, image_pixel, 3])
+ 
+         # Number of record in TFRecord file
+         number_of_record = sum(1 for _ in tf.python_io.tf_record_iterator(tfrecord_path))
+@@ -61,17 +57,11 @@
+     return imgs, lbls
+ 
+ 
+-if __name__ == "__main__":
+-
+-    data_path = '/home/tianyi/Desktop/skin/train/train.tfrecords'
+-    image_pixel = 300
++images, labels = read_tfrecord(tfrecord_path=data_path)
+ 
+-    images, labels = read_tfrecord(tfrecord_path=data_path, pixel=image_pixel)
+-
+-    # test to see if the module is correctly defined by reading an image
+-    j = 200
+-    plt.imshow(images[j])
+-    plt.title('benign' if labels[j] == 0 else 'malignant')
++j = 200
++plt.imshow(images[j])
++plt.title('undistorted' if labels[j] == 0 else 'blurred')
+ 
+ 
+ 
+Index: load_images.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- load_images.py	(date 1529524414000)
++++ load_images.py	(revision 1ca1c3d5ba3de66240e66aeffb93070c1448ab12)
+@@ -149,7 +149,7 @@
+     img_name_all, img_mat_all, img_path_all, lbls = load_images_and_label_from_folder(
+         folder_class_0=train_folder_dir_class_0, folder_class_1=train_folder_dir_class_1)
+ 
+-    # # test to see if the module is correctly defined by reading an image
++    # # test to see if the module is correct by printing a image
+     # j = 304
+     # print(img_mat_all[j])
+     # print(img_name_all[j])

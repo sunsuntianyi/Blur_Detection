@@ -2,10 +2,16 @@ import os
 import numpy as np
 import shutil
 from load_images import standardize_file_name
-from natsort import natsorted # for hard sorting
+from natsort import natsorted # use this for hard sorting
 
 
 def create_folder(data_dir, folder_name):
+    """
+    This function is used to create folder
+
+    :param: data_dir:     path where you want to put your folder
+    :param: folder_name:  name of the folder you want to create
+    """
     if not os.path.exists(data_dir + '/' + folder_name):
         os.makedirs(data_dir + '/' + folder_name)
     else:
@@ -53,8 +59,8 @@ if __name__ == "__main__":
     val_data_path_class_1 = '/home/tianyi/Desktop/skin/validate/malignant'
 
     # standardize file name is both training class_0 and 1 folder
-    standardize_file_name(cls=0, folder_path=train_data_path_class_0, file_format=".jpg")
-    standardize_file_name(cls=1, folder_path=train_data_path_class_1, file_format=".jpg")
+    standardize_file_name(cls=0, folder_dir=train_data_path_class_0, file_format=".jpg")
+    standardize_file_name(cls=1, folder_dir=train_data_path_class_1, file_format=".jpg")
 
     # split class_0 training data
     split_and_move_training_data(train_dir=train_data_path_class_1, val_dir=val_data_path_class_1, portion=0.4)

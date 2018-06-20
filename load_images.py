@@ -149,7 +149,7 @@ if __name__ == "__main__":
     img_name_all, img_mat_all, img_path_all, lbls = load_images_and_label_from_folder(
         folder_class_0=train_folder_dir_class_0, folder_class_1=train_folder_dir_class_1)
 
-    # # test to see if the module is correct by printing a image
+    # # test to see if the module is correctly defined by reading an image
     # j = 304
     # print(img_mat_all[j])
     # print(img_name_all[j])

@@ -2,11 +2,15 @@ import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 
-data_path = '/home/tianyi/Desktop/data_blur/CERTH_ImageBlurDataset/TrainingSet/train.tfrecords'
-image_pixel = 224
 
+def read_tfrecord(tfrecord_path, pixel):
+    """
+    This function is used to TFRecord files and extract image and its respective label information
 
-def read_tfrecord(tfrecord_path):
+    :param: tfrecord_path:  path of the TFRecord file
+    :param: pixel:          pixel of the original image used to create this TFRecord file
+                            (found in 'read_image_mat' module in 'load_images.py'
+    """
     with tf.Session() as sess:
         feature = {'image': tf.FixedLenFeature([], tf.string),
                    'label': tf.FixedLenFeature([], tf.int64)}
@@ -28,7 +32,7 @@ def read_tfrecord(tfrecord_path):
         label = tf.cast(features['label'], tf.int32)
 
         # Reshape image data into the original shape
-        image = tf.reshape(image, [image_pixel, image_pixel, 3])
+        image = tf.reshape(image, [pixel, pixel, 3])
 
         # Number of record in TFRecord file
         number_of_record = sum(1 for _ in tf.python_io.tf_record_iterator(tfrecord_path))
@@ -57,11 +61,17 @@ def read_tfrecord(tfrecord_path):
     return imgs, lbls
 
 
-images, labels = read_tfrecord(tfrecord_path=data_path)
+if __name__ == "__main__":
 
-j = 200
-plt.imshow(images[j])
-plt.title('undistorted' if labels[j] == 0 else 'blurred')
+    data_path = '/home/tianyi/Desktop/skin/train/train.tfrecords'
+    image_pixel = 300
+
+    images, labels = read_tfrecord(tfrecord_path=data_path, pixel=image_pixel)
+
+    # test to see if the module is correctly defined by reading an image
+    j = 200
+    plt.imshow(images[j])
+    plt.title('benign' if labels[j] == 0 else 'malignant')
 
 
 
