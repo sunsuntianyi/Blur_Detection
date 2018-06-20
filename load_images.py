@@ -5,9 +5,9 @@ import tensorflow as tf
 import numpy as np
 
 
-def read_image_mat(path):
+def read_image_mat(path, resize=300):
     img = cv2.imread(path)
-    img = cv2.resize(img, (224, 224), interpolation=cv2.INTER_CUBIC)
+    img = cv2.resize(img, (resize, resize), interpolation=cv2.INTER_CUBIC)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = img.astype(np.float32)
     return img
@@ -18,13 +18,13 @@ def standardize_file_name(cls, folder_path, file_format=".jpg"):
     This function is used to rename all files in a folder
     """
     if cls == 0:
-        for i, filename in enumerate(os.listdir(folder_path)):
-            os.rename(folder_path + "/" + filename, folder_path + "/" + "class_0_" + str(i) + file_format)
+        for i, filename in enumerate(sorted(os.listdir(folder_path), key=lambda name: int(name[8:-4]))):
+            os.rename(os.path.join(folder_path, filename), folder_path + "/" + "class_0_" + str(i) + file_format)
         return
 
     if cls == 1:
-        for i, filename in enumerate(os.listdir(folder_path)):
-            os.rename(folder_path + "/" + filename, folder_path + "/" + "class_1_" + str(i) + file_format)
+        for i, filename in enumerate(sorted(os.listdir(folder_path), key=lambda name: int(name[8:-4]))):
+            os.rename(os.path.join(folder_path, filename), folder_path + "/" + "class_1_" + str(i) + file_format)
         return
     return
 
@@ -117,22 +117,29 @@ def create_tfrecord(filename_out, path, labels):
     tfwriter.close()
     sys.stdout.flush()
 
-
-train_folder_dir_class_0 = '/home/tianyi/Desktop/data_blur/CERTH_ImageBlurDataset/TrainingSet/undistorted'
-train_folder_dir_class_1 = '/home/tianyi/Desktop/data_blur/CERTH_ImageBlurDataset/TrainingSet/blurred'
-
-# The below two lines of code are one-time use to standardize the raw image file names in class 0 and class 1 folder
-# of the training dataset (comment out after the first run)
-# standardize_file_name(cls=0, folder_path=train_folder_dir_class_0, file_format=".jpg")
-# standardize_file_name(cls=1, folder_path=train_folder_dir_class_1, file_format=".jpg")
-
-load_images_and_label_from_folder(folder_class_0=train_folder_dir_class_0, folder_class_1=train_folder_dir_class_1)
-#
-# j = 304
-# print(img_mat_all[j])
-# print(img_name_all[j])
-# print(labels_train[j])
+    return
 
 
-tfrecord_file_path = '/home/tianyi/Desktop/data_blur/CERTH_ImageBlurDataset/TrainingSet/train.tfrecords'
-create_tfrecord(filename_out=tfrecord_file_path, path=img_path_all, labels=labels_train)
+if __name__ == "__main__":
+
+    train_folder_dir_class_0 = '/home/tianyi/Desktop/skin/train/benign'
+    train_folder_dir_class_1 = '/home/tianyi/Desktop/skin/train/malignant'
+
+    # val_folder_dir_class_0 = ''
+    # val_folder_dir_class_0
+
+    # The below two lines of code are one-time use to standardize the raw image file names in class 0 and class 1 folder
+    # of the training dataset (comment out after the first run)
+    standardize_file_name(cls=0, folder_path=train_folder_dir_class_1, file_format=".jpg")
+    print(len(os.listdir(train_folder_dir_class_1)))
+    # standardize_file_name(cls=1, folder_path=train_folder_dir_class_1, file_format=".jpg")
+    #
+    # load_images_and_label_from_folder(folder_class_0=train_folder_dir_class_0, folder_class_1=train_folder_dir_class_1)
+    # #
+    # # j = 304
+    # # print(img_mat_all[j])
+    # # print(img_name_all[j])
+    # # print(labels_train[j])
+    #
+    # tfrecord_file_path = '/home/tianyi/Desktop/data_blur/CERTH_ImageBlurDataset/TrainingSet/train.tfrecords'
+    # create_tfrecord(filename_out=tfrecord_file_path, path=img_path_all, labels=labels_train)

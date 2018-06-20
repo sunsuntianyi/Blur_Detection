@@ -6,6 +6,8 @@
       <w>dataset</w>
       <w>filenames</w>
       <w>fwriter</w>
+      <w>imgs</w>
+      <w>lbls</w>
       <w>logit</w>
       <w>onehot</w>
       <w>resized</w>
