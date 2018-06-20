@@ -16,6 +16,7 @@ def create_folder(data_dir, folder_name):
 def split_and_move_training_data(train_dir, val_dir, portion=0.4):
     """
     This function is used to split data from the training set to validation set
+    (if you do not have validation set)
     """
     all_file_path = []
     # read all file names in the train_dir

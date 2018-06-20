@@ -13,18 +13,22 @@ def read_image_mat(path, resize=300):
     return img
 
 
-def standardize_file_name(cls, folder_path, file_format=".jpg"):
+def standardize_file_name(cls, folder_dir, file_format='.jpg'):
     """
     This function is used to rename all files in a folder
+
+    :param: cls:          class of the images
+    :param: folder_dir:   folder directory of that class images
+    :param: file_format:  image format, default: '.jpg'
     """
     if cls == 0:
-        for i, filename in enumerate(sorted(os.listdir(folder_path), key=lambda name: int(name[8:-4]))):
-            os.rename(os.path.join(folder_path, filename), folder_path + "/" + "class_0_" + str(i) + file_format)
+        for i, filename in enumerate(sorted(os.listdir(folder_dir), key=lambda name: int(name[8:-4]))):
+            os.rename(os.path.join(folder_dir, filename), folder_dir + "/" + "class_0_" + str(i) + file_format)
         return
 
     if cls == 1:
-        for i, filename in enumerate(sorted(os.listdir(folder_path), key=lambda name: int(name[8:-4]))):
-            os.rename(os.path.join(folder_path, filename), folder_path + "/" + "class_1_" + str(i) + file_format)
+        for i, filename in enumerate(sorted(os.listdir(folder_dir), key=lambda name: int(name[8:-4]))):
+            os.rename(os.path.join(folder_dir, filename), folder_dir + "/" + "class_1_" + str(i) + file_format)
         return
     return
 
@@ -32,9 +36,13 @@ def standardize_file_name(cls, folder_path, file_format=".jpg"):
 def load_images_and_label_from_folder(folder_class_0, folder_class_1):
     """"
     This function is used to load all images name, image path and labels of both classes
+
+    :param: folder_class_0: folder path of class_0 images
+    :param: folder_class_1: folder path of class_1 images
+
     """
     # create an empty list to store file_name
-    global img_name_all, img_mat_all, img_path_all, labels_train
+    global img_name_all, img_mat_all, img_path_all, lbls
     folder_class_0 = folder_class_0 + '/'
     folder_class_1 = folder_class_1 + '/'
     # file_name_0, file_name_1, file_name = list()
@@ -78,19 +86,24 @@ def load_images_and_label_from_folder(folder_class_0, folder_class_1):
     # create and load label
     number_of_class_0 = len(os.listdir(folder_class_0))
     number_of_class_1 = len(os.listdir(folder_class_1))
-    labels_train = [0] * number_of_class_0 + [1] * number_of_class_1
+    lbls = [0] * number_of_class_0 + [1] * number_of_class_1
 
-    return img_name_all, img_mat_all, img_path_all, labels_train
+    return img_name_all, img_mat_all, img_path_all, lbls
 
 
-def create_tfrecord(filename_out, path, labels):
+def create_tfrecord(folder_path, mode, path, labels):
     """
     This function is used to create TFRecord file, which is a binary file,
-    to store all the images and its' respective label.
+    to store all the images of both classes and its' respective label.
 
     This function can only be used with TensorFlow installed
+
+    :param: folder_path: folder path of the TFRecord file you want to save to
+    :param: mode:        create a train TFRecord file or validate TFRecord file. options: 'train' or 'validate'
+    :param: path:        path of the returned value in 'load_images_and_label_from_folder' module, eg. img_path_all
+    :param: labels:      label of the returned value in 'load_images_and_label_from_folder' module, eg. lbls
     """
-    tfwriter = tf.python_io.TFRecordWriter(filename_out)
+    tfwriter = tf.python_io.TFRecordWriter(folder_path + '/' + mode + '.tfrecords')
     for i in range(len(path)):
         # print for every 10 loops
         if not i % 10:
@@ -129,17 +142,19 @@ if __name__ == "__main__":
     # val_folder_dir_class_0
 
     # The below two lines of code are one-time use to standardize the raw image file names in class 0 and class 1 folder
-    # of the training dataset (comment out after the first run)
-    standardize_file_name(cls=0, folder_path=train_folder_dir_class_1, file_format=".jpg")
-    print(len(os.listdir(train_folder_dir_class_1)))
-    # standardize_file_name(cls=1, folder_path=train_folder_dir_class_1, file_format=".jpg")
-    #
-    # load_images_and_label_from_folder(folder_class_0=train_folder_dir_class_0, folder_class_1=train_folder_dir_class_1)
-    # #
-    # # j = 304
-    # # print(img_mat_all[j])
-    # # print(img_name_all[j])
-    # # print(labels_train[j])
-    #
-    # tfrecord_file_path = '/home/tianyi/Desktop/data_blur/CERTH_ImageBlurDataset/TrainingSet/train.tfrecords'
-    # create_tfrecord(filename_out=tfrecord_file_path, path=img_path_all, labels=labels_train)
+    # of the training dataset (you can comment out after the first run)
+    standardize_file_name(cls=0, folder_dir=train_folder_dir_class_0, file_format=".jpg")
+    standardize_file_name(cls=1, folder_dir=train_folder_dir_class_1, file_format=".jpg")
+
+    img_name_all, img_mat_all, img_path_all, lbls = load_images_and_label_from_folder(
+        folder_class_0=train_folder_dir_class_0, folder_class_1=train_folder_dir_class_1)
+
+    # # test to see if the module is correct by printing a image
+    # j = 304
+    # print(img_mat_all[j])
+    # print(img_name_all[j])
+    # print(lbls[j])
+
+    # create the tfrecord file
+    folder = '/home/tianyi/Desktop/skin/train'
+    create_tfrecord(folder_path=folder, mode='train', path=img_path_all, labels=lbls)
