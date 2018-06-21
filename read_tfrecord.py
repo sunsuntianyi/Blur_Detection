@@ -50,7 +50,7 @@ def read_tfrecord(tfrecord_path, pixel):
         threads = tf.train.start_queue_runners(coord=coord)
 
         imgs, lbls = sess.run([img, lbl])
-        imgs = imgs.astype(np.uint8)
+        #imgs = imgs.astype(np.uint8)
 
         coord.request_stop()
 
@@ -63,11 +63,14 @@ def read_tfrecord(tfrecord_path, pixel):
 
 if __name__ == "__main__":
 
-    data_path = '/home/tianyi/Desktop/skin/train/train.tfrecords'
+    data_path = '/home/tianyi/Desktop/skin/train/training.tfrecords'
     image_pixel = 300
 
-    images, labels = read_tfrecord(tfrecord_path=data_path, pixel=image_pixel)
+    images, labels = read_tfrecord(tfrecord_path=data_path,
+                                   pixel=image_pixel)
 
+    print(images[1])
+    print(tf.one_hot(labels, 2))
     # test to see if the module is correctly defined by reading an image
     j = 200
     plt.imshow(images[j])

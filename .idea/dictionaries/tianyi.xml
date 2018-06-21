@@ -9,7 +9,9 @@
       <w>imgs</w>
       <w>lbls</w>
       <w>logit</w>
+      <w>logits</w>
       <w>onehot</w>
+      <w>pred</w>
       <w>resized</w>
       <w>softmax</w>
       <w>tfrecord</w>
