@@ -6,6 +6,12 @@ import numpy as np
 
 
 def read_image_mat(path, resize=300):
+    """
+    This function is used to read image into matrix
+
+    :param: path:     path of the image
+    :param: resize:   resize image pixel, default is 300
+    """
     img = cv2.imread(path)
     img = cv2.resize(img, (resize, resize), interpolation=cv2.INTER_CUBIC)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
