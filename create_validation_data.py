@@ -12,6 +12,7 @@ def create_folder(data_dir, folder_name):
     :param: data_dir:     path where you want to put your folder
     :param: folder_name:  name of the folder you want to create
     """
+    # create folder if the folder does not exist
     if not os.path.exists(data_dir + '/' + folder_name):
         os.makedirs(data_dir + '/' + folder_name)
     else:
@@ -35,7 +36,7 @@ def split_and_move_training_data(train_dir, val_dir, portion=0.4):
 
     # move the randomly selected file from train_dir to val_dir
     for i in range(len(val_list)):
-        # break to prevent repetitive user run
+        # break to prevent repetitive user run in future
         if len(os.listdir(val_dir)) <= portion * len(os.listdir(train_dir)):
             shutil.move(val_list[i], val_dir + '/')
         else:
@@ -55,25 +56,25 @@ if __name__ == "__main__":
                   folder_name='malignant')
 
     # folder path
-    train_data_path_class_0 = '/home/tianyi/Desktop/skin/train/benign'
-    val_data_path_class_0 = '/home/tianyi/Desktop/skin/validate/benign'
+    train_folder_dir_class_0 = '/home/tianyi/Desktop/skin/train/benign'
+    validation_folder_dir_class_0 = '/home/tianyi/Desktop/skin/validate/benign'
 
-    train_data_path_class_1 = '/home/tianyi/Desktop/skin/train/malignant'
-    val_data_path_class_1 = '/home/tianyi/Desktop/skin/validate/malignant'
+    train_folder_dir_class_1 = '/home/tianyi/Desktop/skin/train/malignant'
+    validation_folder_dir_class_1 = '/home/tianyi/Desktop/skin/validate/malignant'
 
     # standardize file name is both training class_0 and 1 folder
     standardize_file_name(cls=0,
-                          folder_dir=train_data_path_class_0,
+                          folder_dir=train_folder_dir_class_0,
                           file_format=".jpg")
     standardize_file_name(cls=1,
-                          folder_dir=train_data_path_class_1,
+                          folder_dir=train_folder_dir_class_1,
                           file_format=".jpg")
 
     # split class_0 training data
-    split_and_move_training_data(train_dir=train_data_path_class_0,
-                                 val_dir=val_data_path_class_0,
+    split_and_move_training_data(train_dir=train_folder_dir_class_0,
+                                 val_dir=validation_folder_dir_class_0,
                                  portion=0.4)
     # split class_1 training data
-    split_and_move_training_data(train_dir=train_data_path_class_1,
-                                 val_dir=val_data_path_class_1,
+    split_and_move_training_data(train_dir=train_folder_dir_class_1,
+                                 val_dir=validation_folder_dir_class_1,
                                  portion=0.4)

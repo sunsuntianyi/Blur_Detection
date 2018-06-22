@@ -49,7 +49,7 @@ def load_images_and_label_from_folder(folder_class_0, folder_class_1):
     # create an empty list to store file_name
     folder_class_0 = folder_class_0 + '/'
     folder_class_1 = folder_class_1 + '/'
-    # file_name_0, file_name_1, file_name = list()
+    # create empty lists
     img_mat_class_0, img_mat_class_1, img_mat_all = [], [], []
     img_name_class_0, img_name_class_1, img_name_all = [], [], []
     image_path_class_0, image_path_class_1, image_path_all = [], [], []
