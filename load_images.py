@@ -5,7 +5,7 @@ import tensorflow as tf
 import numpy as np
 
 
-def read_image_mat(path, resize=300):
+def read_image_mat(path, resize=224):
     """
     This function is used to read image into matrix
 
