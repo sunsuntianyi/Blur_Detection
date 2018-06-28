@@ -15,7 +15,7 @@ def parser(record):
     parsed = tf.parse_single_example(record, keys_to_features)
     image = tf.decode_raw(parsed["image"], tf.uint8)
     image = tf.cast(image, tf.float32)
-    # image = tf.reshape(image, shape=[224, 224, 3])
+    # image = tf.reshape(image, shape=[224, 224, 12])
     label = tf.cast(parsed["label"], tf.int32)
 
     return {'image': image}, label
@@ -40,7 +40,7 @@ def train_input_fn():
 
 
 def val_input_fn():
-    return input_fn(filenames=["val.tfrecords"])
+    return input_fn(filenames=["/home/tianyi/Desktop/skin/validate/validation.tfrecords"])
 
 
 def model_fn(features, labels, mode, params):
@@ -49,7 +49,7 @@ def model_fn(features, labels, mode, params):
 
     net = tf.identity(net, name="input_tensor")
 
-    net = tf.reshape(net, [-1, 224, 224, 3])
+    net = tf.reshape(net, [-1, 224, 224, 12])
 
     net = tf.identity(net, name="input_tensor_after")
 
@@ -117,10 +117,10 @@ model = tf.estimator.Estimator(model_fn=model_fn,
                                model_dir="/home/tianyi/Desktop/skin")
 
 count = 0
-while (count < 100000):
-    model.train(input_fn=train_input_fn, steps=1000)
-    # result = model.evaluate(input_fn=val_input_fn)
-    # print(result)
-    # print("Classification accuracy: {0:.2%}".format(result["accuracy"]))
+while (count < 100):
+    model.train(input_fn=train_input_fn, steps=10)
+    result = model.evaluate(input_fn=val_input_fn)
+    print(result)
+    print("Classification accuracy: {0:.2%}".format(result["accuracy"]))
     sys.stdout.flush()
-count = count + 1
+    count = count + 1
