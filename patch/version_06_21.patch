@@ -1,0 +1,50 @@
+Index: load_images.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- load_images.py	(revision 8d436327ecced6c2fb0664f87c1eab470db4d6e9)
++++ load_images.py	(date 1529620003000)
+@@ -6,6 +6,12 @@
+ 
+ 
+ def read_image_mat(path, resize=300):
++    """
++    This function is used to read image into matrix
++
++    :param: path:     path of the image
++    :param: resize:   resize image pixel, default is 300
++    """
+     img = cv2.imread(path)
+     img = cv2.resize(img, (resize, resize), interpolation=cv2.INTER_CUBIC)
+     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+Index: .idea/Blur_Detection.iml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- .idea/Blur_Detection.iml	(revision 8d436327ecced6c2fb0664f87c1eab470db4d6e9)
++++ .idea/Blur_Detection.iml	(date 1529619865000)
+@@ -2,7 +2,7 @@
+ <module type="PYTHON_MODULE" version="4">
+   <component name="NewModuleRootManager">
+     <content url="file://$MODULE_DIR$" />
+-    <orderEntry type="jdk" jdkName="Python 3.6 (tensorflow3)" jdkType="Python SDK" />
++    <orderEntry type="jdk" jdkName="Python 3.6 (tensorflow)" jdkType="Python SDK" />
+     <orderEntry type="sourceFolder" forTests="false" />
+   </component>
+   <component name="TestRunnerService">
+Index: .idea/misc.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- .idea/misc.xml	(revision 8d436327ecced6c2fb0664f87c1eab470db4d6e9)
++++ .idea/misc.xml	(date 1529619865000)
+@@ -1,4 +1,4 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <project version="4">
+-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.6 (tensorflow3)" project-jdk-type="Python SDK" />
++  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.6 (tensorflow)" project-jdk-type="Python SDK" />
+ </project>
+\ No newline at end of file

@@ -1,0 +1,527 @@
+Index: create_validation_data.py
+===================================================================
+--- create_validation_data.py	(revision 0672d6cd84092bd15d4c026e67b2ee27b51acdfa)
++++ create_validation_data.py	(revision 0672d6cd84092bd15d4c026e67b2ee27b51acdfa)
+@@ -1,80 +0,0 @@
+-import os
+-import numpy as np
+-import shutil
+-from load_images import standardize_file_name
+-from natsort import natsorted # use this for hard sorting
+-
+-
+-def create_folder(data_dir, folder_name):
+-    """
+-    This function is used to create folder
+-
+-    :param: data_dir:     path where you want to put your folder
+-    :param: folder_name:  name of the folder you want to create
+-    """
+-    # create folder if the folder does not exist
+-    if not os.path.exists(data_dir + '/' + folder_name):
+-        os.makedirs(data_dir + '/' + folder_name)
+-    else:
+-        print("folder already exists")
+-    return
+-
+-
+-def split_and_move_training_data(train_dir, val_dir, portion=0.4):
+-    """
+-    This function is used to split data from the training set to validation set
+-    (if you do not have validation set)
+-    """
+-    all_file_path = []
+-    # read all file names in the train_dir
+-    for filename in os.listdir(train_dir):
+-        read_list = os.path.abspath(os.path.join(train_dir, filename))
+-        all_file_path.append(read_list)
+-
+-    # random select files
+-    val_list = np.random.choice(all_file_path, replace=False, size=int(np.floor(portion * len(all_file_path))))
+-
+-    # move the randomly selected file from train_dir to val_dir
+-    for i in range(len(val_list)):
+-        # break to prevent repetitive user run in future
+-        if len(os.listdir(val_dir)) <= portion * len(os.listdir(train_dir)):
+-            shutil.move(val_list[i], val_dir + '/')
+-        else:
+-            print('Validation file already moved, please check')
+-            break
+-    return
+-
+-
+-if __name__ == "__main__":
+-
+-    # create validation class_0 and class_1 sub-folder
+-    val_path = '/home/tianyi/Desktop/skin/validate'
+-
+-    create_folder(data_dir=val_path,
+-                  folder_name='benign')
+-    create_folder(data_dir=val_path,
+-                  folder_name='malignant')
+-
+-    # folder path
+-    train_folder_dir_class_0 = '/home/tianyi/Desktop/skin/train/benign'
+-    validation_folder_dir_class_0 = '/home/tianyi/Desktop/skin/validate/benign'
+-
+-    train_folder_dir_class_1 = '/home/tianyi/Desktop/skin/train/malignant'
+-    validation_folder_dir_class_1 = '/home/tianyi/Desktop/skin/validate/malignant'
+-
+-    # standardize file name is both training class_0 and 1 folder
+-    standardize_file_name(cls=0,
+-                          folder_dir=train_folder_dir_class_0,
+-                          file_format=".jpg")
+-    standardize_file_name(cls=1,
+-                          folder_dir=train_folder_dir_class_1,
+-                          file_format=".jpg")
+-
+-    # split class_0 training data
+-    split_and_move_training_data(train_dir=train_folder_dir_class_0,
+-                                 val_dir=validation_folder_dir_class_0,
+-                                 portion=0.4)
+-    # split class_1 training data
+-    split_and_move_training_data(train_dir=train_folder_dir_class_1,
+-                                 val_dir=validation_folder_dir_class_1,
+-                                 portion=0.4)
+Index: load_images.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- load_images.py	(revision 0672d6cd84092bd15d4c026e67b2ee27b51acdfa)
++++ load_images.py	(date 1530226123000)
+@@ -10,7 +10,7 @@
+     This function is used to read image into matrix
+ 
+     :param: path:     path of the image
+-    :param: resize:   resize image pixel, default is 300
++    :param: resize:   resize image pixel, default is 224
+     """
+     img = cv2.imread(path)
+     img = cv2.resize(img, (resize, resize), interpolation=cv2.INTER_CUBIC)
+@@ -135,65 +135,3 @@
+     sys.stdout.flush()
+ 
+     return
+-
+-
+-if __name__ == "__main__":
+-
+-    train_folder_dir_class_0 = '/home/tianyi/Desktop/skin/train/benign'
+-    train_folder_dir_class_1 = '/home/tianyi/Desktop/skin/train/malignant'
+-
+-    validation_folder_dir_class_0 = '/home/tianyi/Desktop/skin/validate/benign'
+-    validation_folder_dir_class_1 = '/home/tianyi/Desktop/skin/validate/malignant'
+-
+-    # The below four lines of code are one-time use to standardize the raw image file names
+-    # in class 0 and class 1 folder of the training and validation dataset (you can comment out after the first run)
+-    standardize_file_name(cls=0,
+-                          folder_dir=train_folder_dir_class_0,
+-                          file_format=".jpg")
+-    standardize_file_name(cls=1,
+-                          folder_dir=train_folder_dir_class_1,
+-                          file_format=".jpg")
+-
+-    standardize_file_name(cls=0,
+-                          folder_dir=validation_folder_dir_class_0,
+-                          file_format=".jpg")
+-    standardize_file_name(cls=1,
+-                          folder_dir=validation_folder_dir_class_1,
+-                          file_format=".jpg")
+-
+-    # create TFRecord file for training set
+-    tra_img_name_all, \
+-        tra_img_mat_all, \
+-        tra_img_path_all, \
+-        tra_lbls = \
+-        load_images_and_label_from_folder(
+-            folder_class_0=train_folder_dir_class_0,
+-            folder_class_1=train_folder_dir_class_1)
+-
+-    tra_folder = '/home/tianyi/Desktop/skin/train'
+-    create_tfrecord(folder_path=tra_folder,
+-                    mode='training',
+-                    path=tra_img_path_all,
+-                    labels=tra_lbls)
+-
+-    # create TFRecord file for validation set
+-    val_img_name_all, \
+-        val_img_mat_all, \
+-        val_img_path_all, \
+-        val_lbls = \
+-        load_images_and_label_from_folder(
+-            folder_class_0=validation_folder_dir_class_0,
+-            folder_class_1=validation_folder_dir_class_1)
+-
+-    val_folder = '/home/tianyi/Desktop/skin/validate'
+-    create_tfrecord(folder_path=val_folder,
+-                    mode='validation',
+-                    path=val_img_path_all,
+-                    labels=val_lbls)
+-
+-    # # test to see if the module is correctly defined by reading an image
+-    # j = 304
+-    # print(val_img_mat_all[j])
+-    # print(val_img_name_all[j])
+-    # print(val_lbls[j])
+-
+Index: .idea/Blur_Detection.iml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- .idea/Blur_Detection.iml	(revision 0672d6cd84092bd15d4c026e67b2ee27b51acdfa)
++++ .idea/Blur_Detection.iml	(date 1530061206000)
+@@ -4,7 +4,7 @@
+     <content url="file://$MODULE_DIR$">
+       <sourceFolder url="file://$MODULE_DIR$/Untitled Folder" isTestSource="false" />
+     </content>
+-    <orderEntry type="jdk" jdkName="Python 3.6 (tensorflow3)" jdkType="Python SDK" />
++    <orderEntry type="jdk" jdkName="Python 3.6 (tensorflow)" jdkType="Python SDK" />
+     <orderEntry type="sourceFolder" forTests="false" />
+   </component>
+   <component name="TestRunnerService">
+Index: train01.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- train01.py	(revision 0672d6cd84092bd15d4c026e67b2ee27b51acdfa)
++++ train01.py	(date 1530064652000)
+@@ -36,7 +36,7 @@
+ 
+ 
+ def train_input_fn():
+-    return input_fn(filenames=["/home/tianyi/Desktop/skin/train/training.tfrecords", "/home/tianyi/Desktop/skin/validate/validation.tfrecords"])
++    return input_fn(filenames=["/Users/TonY/Desktop/training.tfrecords", "/Users/TonY/Desktop/validation.tfrecords"])
+ 
+ 
+ def val_input_fn():
+@@ -114,7 +114,7 @@
+ 
+ model = tf.estimator.Estimator(model_fn=model_fn,
+                                params={"learning_rate": 1e-4},
+-                               model_dir="/home/tianyi/Desktop/skin")
++                               model_dir="/Users/TonY/Desktop/Data_Prep")
+ 
+ count = 0
+ while (count < 100000):
+Index: .idea/misc.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- .idea/misc.xml	(revision 0672d6cd84092bd15d4c026e67b2ee27b51acdfa)
++++ .idea/misc.xml	(date 1530061206000)
+@@ -1,4 +1,4 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <project version="4">
+-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.6 (tensorflow3)" project-jdk-type="Python SDK" />
++  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.6 (tensorflow)" project-jdk-type="Python SDK" />
+ </project>
+\ No newline at end of file
+Index: run.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- run.py	(revision 0672d6cd84092bd15d4c026e67b2ee27b51acdfa)
++++ run.py	(date 1530226500000)
+@@ -1,4 +1,4 @@
+-import create_validation_data
++import create_validation_and_test_data
+ import load_images
+ import read_tfrecord
+ import tensorflow as tf
+@@ -8,6 +8,7 @@
+ def main(
+         tra_folder='/home/tianyi/Desktop/skin/train',
+         val_folder='/home/tianyi/Desktop/skin/validate',
++        test_folder='/home/tianyi/Desktop/skin/test',
+ 
+         train_folder_dir_class_0='/home/tianyi/Desktop/skin/train/benign',
+         train_folder_dir_class_1='/home/tianyi/Desktop/skin/train/malignant',
+@@ -15,23 +16,34 @@
+         validation_folder_dir_class_0='/home/tianyi/Desktop/skin/validate/benign',
+         validation_folder_dir_class_1='/home/tianyi/Desktop/skin/validate/malignant',
+ 
++        test_folder_dir_class_0='/home/tianyi/Desktop/skin/validate/benign',
++        test_folder_dir_class_1='/home/tianyi/Desktop/skin/validate/malignant',
++
+         tfrecord_dir='/home/tianyi/Desktop/skin/train/training.tfrecords'
+ 
+ ):
++    # create validation class_0 and class_1 sub-folder
++    create_validation_and_test_data.create_folder(data_dir=val_folder,
++                                                  folder_name='benign')
++
++    create_validation_and_test_data.create_folder(data_dir=val_folder,
++                                                  folder_name='malignant')
++
++    # create testing class_0 and class_1 sub-folder
++    create_validation_and_test_data.create_folder(data_dir=test_folder,
++                                                  folder_name='benign')
++
++    create_validation_and_test_data.create_folder(data_dir=test_folder,
++                                                  folder_name='malignant')
++
+     # split class_0 training data
+-    create_validation_data.split_and_move_training_data(train_dir=train_folder_dir_class_0,
+-                                                        val_dir=validation_folder_dir_class_0,
+-                                                        portion=0.4)
++    create_validation_and_test_data.split_and_move_training_data(train_dir=train_folder_dir_class_0,
++                                                                 val_dir=validation_folder_dir_class_0,
++                                                                 test_dir=test_folder_dir_class_0)
+     # split class_1 training data
+-    create_validation_data.split_and_move_training_data(train_dir=train_folder_dir_class_1,
+-                                                        val_dir=validation_folder_dir_class_1,
+-                                                        portion=0.4)
+-
+-    # create validation class_0 and class_1 sub-folder
+-    create_validation_data.create_folder(data_dir=val_folder,
+-                                         folder_name='benign')
+-    create_validation_data.create_folder(data_dir=val_folder,
+-                                         folder_name='malignant')
++    create_validation_and_test_data.split_and_move_training_data(train_dir=train_folder_dir_class_1,
++                                                                 val_dir=validation_folder_dir_class_1,
++                                                                 test_dir=test_folder_dir_class_1)
+ 
+     # standardize train and validation images of both classes
+     load_images.standardize_file_name(cls=0,
+@@ -47,6 +59,13 @@
+     load_images.standardize_file_name(cls=1,
+                                       folder_dir=validation_folder_dir_class_1,
+                                       file_format=".jpg")
++
++    load_images.standardize_file_name(cls=0,
++                                      folder_dir=test_folder_dir_class_0,
++                                      file_format=".jpg")
++    load_images.standardize_file_name(cls=1,
++                                      folder_dir=test_folder_dir_class_1,
++                                      file_format=".jpg")
+ 
+     # create TFRecord file for training set
+     tra_img_name_all,\
+@@ -76,7 +95,22 @@
+                                 path=val_img_path_all,
+                                 labels=val_lbls)
+ 
+-    image_pixel = 300
++    # create TFRecord file for testing set
++    test_img_name_all,\
++        test_img_mat_all,\
++        test_img_path_all,\
++        test_lbls = \
++        load_images.load_images_and_label_from_folder(
++            folder_class_0=test_folder_dir_class_0,
++            folder_class_1=test_folder_dir_class_1)
++
++    load_images.create_tfrecord(folder_path=test_folder,
++                                mode='testing',
++                                path=test_img_path_all,
++                                labels=test_lbls)
++
++    # Test if image is loaded correctly from TFRecord file
++    image_pixel = 224
+ 
+     images, labels = read_tfrecord.read_tfrecord(tfrecord_path=tfrecord_dir,
+                                                  pixel=image_pixel)
+Index: read_tfrecord.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- read_tfrecord.py	(revision 0672d6cd84092bd15d4c026e67b2ee27b51acdfa)
++++ read_tfrecord.py	(date 1530226123000)
+@@ -1,6 +1,4 @@
+ import tensorflow as tf
+-import numpy as np
+-import matplotlib.pyplot as plt
+ 
+ 
+ def read_tfrecord(tfrecord_path, pixel):
+@@ -49,6 +47,7 @@
+         coord = tf.train.Coordinator()
+         threads = tf.train.start_queue_runners(coord=coord)
+ 
++        # tf session run
+         imgs, lbls = sess.run([img, lbl])
+         #imgs = imgs.astype(np.uint8)
+ 
+@@ -61,92 +60,92 @@
+     return imgs, lbls
+ 
+ ####################################
+-
+-
+-def parse(serialized):
+-    # Define a dict with the data-names and types we expect to
+-    # find in the TFRecords file.
+-    # It is a bit awkward that this needs to be specified again,
+-    # because it could have been written in the header of the
+-    # TFRecords file instead.
+-    features = \
+-        {
+-            'image': tf.FixedLenFeature([], tf.string),
+-            'label': tf.FixedLenFeature([], tf.int64)
+-        }
+-
+-    # Parse the serialized data so we get a dict with our data.
+-    parsed_example = tf.parse_single_example(serialized=serialized,
+-                                             features=features)
+-
+-    # Get the image as raw bytes.
+-    image_raw = parsed_example['image']
+-
+-    # Decode the raw bytes so it becomes a tensor with type.
+-    image = tf.decode_raw(image_raw, tf.uint8)
+-
+-    # The type is now uint8 but we need it to be float.
+-    image = tf.cast(image, tf.float32)
+-
+-    # Get the label associated with the image.
+-    label = parsed_example['label']
+-
+-    # The image and label are now correct TensorFlow types.
+-    return image, label
+-
+-
+-def input_fn(filenames, train, batch_size=32, buffer_size=1024):
+-    # Args:
+-    # filenames:   Filenames for the TFRecords files.
+-    # train:       Boolean whether training (True) or testing (False).
+-    # batch_size:  Return batches of this size.
+-    # buffer_size: Read buffers of this size. The random shuffling
+-    #              is done on the buffer, so it must be big enough.
+-
+-    # Create a TensorFlow Dataset-object which has functionality
+-    # for reading and shuffling data from TFRecords files.
+-    dataset = tf.data.TFRecordDataset(filenames=filenames)
+-
+-    # Parse the serialized data in the TFRecords files.
+-    # This returns TensorFlow tensors for the image and labels.
+-    dataset = dataset.map(parse)
+-
+-    if train:
+-        # If training then read a buffer of the given size and
+-        # randomly shuffle it.
+-        dataset = dataset.shuffle(buffer_size=buffer_size)
+-
+-        # Allow infinite reading of the data.
+-        num_repeat = None
+-    else:
+-        # If testing then don't shuffle the data.
+-
+-        # Only go through the data once.
+-        num_repeat = 1
++#
++#
++# def parse(serialized):
++#     # Define a dict with the data-names and types we expect to
++#     # find in the TFRecords file.
++#     # It is a bit awkward that this needs to be specified again,
++#     # because it could have been written in the header of the
++#     # TFRecords file instead.
++#     features = \
++#         {
++#             'image': tf.FixedLenFeature([], tf.string),
++#             'label': tf.FixedLenFeature([], tf.int64)
++#         }
++#
++#     # Parse the serialized data so we get a dict with our data.
++#     parsed_example = tf.parse_single_example(serialized=serialized,
++#                                              features=features)
++#
++#     # Get the image as raw bytes.
++#     image_raw = parsed_example['image']
++#
++#     # Decode the raw bytes so it becomes a tensor with type.
++#     image = tf.decode_raw(image_raw, tf.uint8)
++#
++#     # The type is now uint8 but we need it to be float.
++#     image = tf.cast(image, tf.float32)
++#
++#     # Get the label associated with the image.
++#     label = parsed_example['label']
++#
++#     # The image and label are now correct TensorFlow types.
++#     return image, label
++#
++#
++# def input_fn(filenames, train, batch_size=32, buffer_size=1024):
++#     # Args:
++#     # filenames:   Filenames for the TFRecords files.
++#     # train:       Boolean whether training (True) or testing (False).
++#     # batch_size:  Return batches of this size.
++#     # buffer_size: Read buffers of this size. The random shuffling
++#     #              is done on the buffer, so it must be big enough.
++#
++#     # Create a TensorFlow Dataset-object which has functionality
++#     # for reading and shuffling data from TFRecords files.
++#     dataset = tf.data.TFRecordDataset(filenames=filenames)
++#
++#     # Parse the serialized data in the TFRecords files.
++#     # This returns TensorFlow tensors for the image and labels.
++#     dataset = dataset.map(parse)
++#
++#     if train:
++#         # If training then read a buffer of the given size and
++#         # randomly shuffle it.
++#         dataset = dataset.shuffle(buffer_size=buffer_size)
++#
++#         # Allow infinite reading of the data.
++#         num_repeat = None
++#     else:
++#         # If testing then don't shuffle the data.
++#
++#         # Only go through the data once.
++#         num_repeat = 1
++#
++#     # Repeat the dataset the given number of times.
++#     dataset = dataset.repeat(num_repeat)
++#
++#     # Get a batch of data with the given size.
++#     dataset = dataset.batch(batch_size)
++#
++#     # Create an iterator for the dataset and the above modifications.
++#     iterator = dataset.make_one_shot_iterator()
++#
++#     # Get the next batch of images and labels.
++#     images_batch, labels_batch = iterator.get_next()
++#
++#     # The input-function must return a dict wrapping the images.
++#     x = {'image': images_batch}
++#     y = labels_batch
++#
++#     return x, y
+ 
+-    # Repeat the dataset the given number of times.
+-    dataset = dataset.repeat(num_repeat)
+ 
+-    # Get a batch of data with the given size.
+-    dataset = dataset.batch(batch_size)
+-
+-    # Create an iterator for the dataset and the above modifications.
+-    iterator = dataset.make_one_shot_iterator()
+-
+-    # Get the next batch of images and labels.
+-    images_batch, labels_batch = iterator.get_next()
+-
+-    # The input-function must return a dict wrapping the images.
+-    x = {'image': images_batch}
+-    y = labels_batch
+-
+-    return x, y
+-
+-
+-if __name__ == "__main__":
+-
+-    data_path = '/home/tianyi/Desktop/skin/train/training.tfrecords'
+-    image_pixel = 200
++# if __name__ == "__main__":
++#
++#     data_path = '/home/tianyi/Desktop/skin/train/training.tfrecords'
++#     image_pixel = 200
+ 
+     # images, labels = read_tfrecord(tfrecord_path=data_path,
+     #                                pixel=image_pixel)
