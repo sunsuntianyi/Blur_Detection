@@ -123,7 +123,8 @@ def create_tfrecord(folder_path, mode, path, labels):
             continue
 
         feature = {
-            'image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[tf.compat.as_bytes(img.tostring())])),
+            # 'image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[tf.compat.as_bytes(img.tostring())])),
+            'image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[img.tostring()])),
             'label': tf.train.Feature(int64_list=tf.train.Int64List(value=[label]))
         }
         # create a protocol buffer
