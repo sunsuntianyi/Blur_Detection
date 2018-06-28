@@ -10,7 +10,7 @@ def read_image_mat(path, resize=224):
     This function is used to read image into matrix
 
     :param: path:     path of the image
-    :param: resize:   resize image pixel, default is 300
+    :param: resize:   resize image pixel, default is 224
     """
     img = cv2.imread(path)
     img = cv2.resize(img, (resize, resize), interpolation=cv2.INTER_CUBIC)
@@ -135,65 +135,3 @@ def create_tfrecord(folder_path, mode, path, labels):
     sys.stdout.flush()
 
     return
-
-
-if __name__ == "__main__":
-
-    train_folder_dir_class_0 = '/home/tianyi/Desktop/skin/train/benign'
-    train_folder_dir_class_1 = '/home/tianyi/Desktop/skin/train/malignant'
-
-    validation_folder_dir_class_0 = '/home/tianyi/Desktop/skin/validate/benign'
-    validation_folder_dir_class_1 = '/home/tianyi/Desktop/skin/validate/malignant'
-
-    # The below four lines of code are one-time use to standardize the raw image file names
-    # in class 0 and class 1 folder of the training and validation dataset (you can comment out after the first run)
-    standardize_file_name(cls=0,
-                          folder_dir=train_folder_dir_class_0,
-                          file_format=".jpg")
-    standardize_file_name(cls=1,
-                          folder_dir=train_folder_dir_class_1,
-                          file_format=".jpg")
-
-    standardize_file_name(cls=0,
-                          folder_dir=validation_folder_dir_class_0,
-                          file_format=".jpg")
-    standardize_file_name(cls=1,
-                          folder_dir=validation_folder_dir_class_1,
-                          file_format=".jpg")
-
-    # create TFRecord file for training set
-    tra_img_name_all, \
-        tra_img_mat_all, \
-        tra_img_path_all, \
-        tra_lbls = \
-        load_images_and_label_from_folder(
-            folder_class_0=train_folder_dir_class_0,
-            folder_class_1=train_folder_dir_class_1)
-
-    tra_folder = '/home/tianyi/Desktop/skin/train'
-    create_tfrecord(folder_path=tra_folder,
-                    mode='training',
-                    path=tra_img_path_all,
-                    labels=tra_lbls)
-
-    # create TFRecord file for validation set
-    val_img_name_all, \
-        val_img_mat_all, \
-        val_img_path_all, \
-        val_lbls = \
-        load_images_and_label_from_folder(
-            folder_class_0=validation_folder_dir_class_0,
-            folder_class_1=validation_folder_dir_class_1)
-
-    val_folder = '/home/tianyi/Desktop/skin/validate'
-    create_tfrecord(folder_path=val_folder,
-                    mode='validation',
-                    path=val_img_path_all,
-                    labels=val_lbls)
-
-    # # test to see if the module is correctly defined by reading an image
-    # j = 304
-    # print(val_img_mat_all[j])
-    # print(val_img_name_all[j])
-    # print(val_lbls[j])
-
