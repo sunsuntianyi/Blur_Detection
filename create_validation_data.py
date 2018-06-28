@@ -24,6 +24,10 @@ def split_and_move_training_data(train_dir, val_dir, portion=0.4):
     """
     This function is used to split data from the training set to validation set
     (if you do not have validation set)
+
+    :param: train_dir:  training data folder directory
+    :param: val_dir:    validation data folder directory
+    :param: portion:    proportion of the training data which you want to move to validation folder, default: 40%
     """
     all_file_path = []
     # read all file names in the train_dir
