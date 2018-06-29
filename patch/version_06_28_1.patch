@@ -1,0 +1,35 @@
+Index: create_validation_data.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- create_validation_data.py	(revision 0672d6cd84092bd15d4c026e67b2ee27b51acdfa)
++++ create_validation_data.py	(date 1530208393000)
+@@ -24,6 +24,10 @@
+     """
+     This function is used to split data from the training set to validation set
+     (if you do not have validation set)
++
++    :param: train_dir:  training data folder directory
++    :param: val_dir:    validation data folder directory
++    :param: portion:    proportion of the training data which you want to move to validation folder, default: 40%
+     """
+     all_file_path = []
+     # read all file names in the train_dir
+Index: load_images.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- load_images.py	(revision 0672d6cd84092bd15d4c026e67b2ee27b51acdfa)
++++ load_images.py	(date 1530062990000)
+@@ -123,7 +123,8 @@
+             continue
+ 
+         feature = {
+-            'image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[tf.compat.as_bytes(img.tostring())])),
++            # 'image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[tf.compat.as_bytes(img.tostring())])),
++            'image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[img.tostring()])),
+             'label': tf.train.Feature(int64_list=tf.train.Int64List(value=[label]))
+         }
+         # create a protocol buffer

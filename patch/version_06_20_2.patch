@@ -1,0 +1,316 @@
+Index: .idea/dictionaries/tianyi.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- .idea/dictionaries/tianyi.xml	(revision 762311dd5ed8146445843d34bf04e31aaa464f33)
++++ .idea/dictionaries/tianyi.xml	(date 1529542303000)
+@@ -9,7 +9,9 @@
+       <w>imgs</w>
+       <w>lbls</w>
+       <w>logit</w>
++      <w>logits</w>
+       <w>onehot</w>
++      <w>pred</w>
+       <w>resized</w>
+       <w>softmax</w>
+       <w>tfrecord</w>
+Index: create_validation_data.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- create_validation_data.py	(revision 762311dd5ed8146445843d34bf04e31aaa464f33)
++++ create_validation_data.py	(date 1529530273000)
+@@ -39,6 +39,7 @@
+         if len(os.listdir(val_dir)) <= portion * len(os.listdir(train_dir)):
+             shutil.move(val_list[i], val_dir + '/')
+         else:
++            print('Validation file already moved, please check')
+             break
+     return
+ 
+@@ -48,8 +49,10 @@
+     # create validation class_0 and class_1 sub-folder
+     val_path = '/home/tianyi/Desktop/skin/validate'
+ 
+-    create_folder(data_dir=val_path, folder_name='benign')
+-    create_folder(data_dir=val_path, folder_name='malignant')
++    create_folder(data_dir=val_path,
++                  folder_name='benign')
++    create_folder(data_dir=val_path,
++                  folder_name='malignant')
+ 
+     # folder path
+     train_data_path_class_0 = '/home/tianyi/Desktop/skin/train/benign'
+@@ -59,10 +62,18 @@
+     val_data_path_class_1 = '/home/tianyi/Desktop/skin/validate/malignant'
+ 
+     # standardize file name is both training class_0 and 1 folder
+-    standardize_file_name(cls=0, folder_dir=train_data_path_class_0, file_format=".jpg")
+-    standardize_file_name(cls=1, folder_dir=train_data_path_class_1, file_format=".jpg")
++    standardize_file_name(cls=0,
++                          folder_dir=train_data_path_class_0,
++                          file_format=".jpg")
++    standardize_file_name(cls=1,
++                          folder_dir=train_data_path_class_1,
++                          file_format=".jpg")
+ 
+     # split class_0 training data
+-    split_and_move_training_data(train_dir=train_data_path_class_1, val_dir=val_data_path_class_1, portion=0.4)
++    split_and_move_training_data(train_dir=train_data_path_class_0,
++                                 val_dir=val_data_path_class_0,
++                                 portion=0.4)
+     # split class_1 training data
+-    # split_and_move_training_data(train_dir=train_data_path_class_1, val_dir=val_data_path_class_1, portion=0.4)
++    split_and_move_training_data(train_dir=train_data_path_class_1,
++                                 val_dir=val_data_path_class_1,
++                                 portion=0.4)
+Index: read_tfrecord.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- read_tfrecord.py	(revision 762311dd5ed8146445843d34bf04e31aaa464f33)
++++ read_tfrecord.py	(date 1529547858000)
+@@ -50,7 +50,7 @@
+         threads = tf.train.start_queue_runners(coord=coord)
+ 
+         imgs, lbls = sess.run([img, lbl])
+-        imgs = imgs.astype(np.uint8)
++        #imgs = imgs.astype(np.uint8)
+ 
+         coord.request_stop()
+ 
+@@ -63,11 +63,14 @@
+ 
+ if __name__ == "__main__":
+ 
+-    data_path = '/home/tianyi/Desktop/skin/train/train.tfrecords'
++    data_path = '/home/tianyi/Desktop/skin/train/training.tfrecords'
+     image_pixel = 300
+ 
+-    images, labels = read_tfrecord(tfrecord_path=data_path, pixel=image_pixel)
++    images, labels = read_tfrecord(tfrecord_path=data_path,
++                                   pixel=image_pixel)
+ 
++    print(images[1])
++    print(tf.one_hot(labels, 2))
+     # test to see if the module is correctly defined by reading an image
+     j = 200
+     plt.imshow(images[j])
+Index: train.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- train.py	(revision 762311dd5ed8146445843d34bf04e31aaa464f33)
++++ train.py	(date 1529550718000)
+@@ -2,7 +2,98 @@
+ import sys
+ import cv2
+ import tensorflow as tf
++from read_tfrecord import read_tfrecord
++
++
++def build_cnn(images, labels, mode, params):
++    num_classes = 3
++    net = images
++
++    net = tf.identity(net, name="input_tensor")
+ 
++    net = tf.reshape(net, [-1, 300, 300, 3])
+ 
++    net = tf.identity(net, name="input_tensor_after")
+ 
++    net = tf.layers.conv2d(inputs=net, name='layer_conv1',
++                           filters=32, kernel_size=3,
++                           padding='same', activation=tf.nn.relu)
++    net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
++
++    net = tf.layers.conv2d(inputs=net, name='layer_conv2',
++                           filters=64, kernel_size=3,
++                           padding='same', activation=tf.nn.relu)
++    net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
++
++    net = tf.layers.conv2d(inputs=net, name='layer_conv3',
++                           filters=64, kernel_size=3,
++                           padding='same', activation=tf.nn.relu)
++    net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
++
++    net = tf.contrib.layers.flatten(net)
++
++    net = tf.layers.dense(inputs=net, name='layer_fc1',
++                          units=128, activation=tf.nn.relu)
++
++    net = tf.layers.dropout(net, rate=0.5, noise_shape=None,
++                            seed=None, training=(mode == tf.estimator.ModeKeys.TRAIN))
++
++    net = tf.layers.dense(inputs=net, name='layer_fc_2',
++                          units=num_classes)
++
++    logits = net
++    y_pred = tf.nn.softmax(logits=logits)
++
++    y_pred = tf.identity(y_pred, name="output_pred")
++
++    y_pred_cls = tf.argmax(y_pred, axis=1)
++
++    y_pred_cls = tf.identity(y_pred_cls, name="output_cls")
++
++    if mode == tf.estimator.ModeKeys.PREDICT:
++        spec = tf.estimator.EstimatorSpec(mode=mode,
++                                          predictions=y_pred_cls)
++    else:
++        cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels,
++                                                                       logits=logits)
++        loss = tf.reduce_mean(cross_entropy)
++
++        optimizer = tf.train.AdamOptimizer(learning_rate=params["learning_rate"])
++        train_op = optimizer.minimize(
++            loss=loss, global_step=tf.train.get_global_step())
++        metrics = {
++            "accuracy": tf.metrics.accuracy(labels, y_pred_cls)
++        }
++
++        spec = tf.estimator.EstimatorSpec(
++            mode=mode,
++            loss=loss,
++            train_op=train_op,
++            eval_metric_ops=metrics)
++
++    return spec
++
++
++data_path = '/home/tianyi/Desktop/skin/train/training.tfrecords'
++image_pixel = 300
++
++images, labels = read_tfrecord(tfrecord_path=data_path,
++                               pixel=image_pixel)
++
++
++labels = tf.one_hot(labels, 2)
++
++# build_cnn = build_cnn(images=images, labels=labels, mode=tf.estimator.ModeKeys.PREDICT, params=0.0001)
++
++model = tf.estimator.Estimator(model_fn=build_cnn(images=images, labels=labels, mode=tf.estimator.ModeKeys.PREDICT, params=0.0001),
++                               model_dir="/home/tianyi/Desktop/Blur_Detection/")
++
++# count = 0
++# while (count < 100000):
++#     model.train(input_fn=train_input_fn, steps=1000)
++#     result = model.evaluate(input_fn=val_input_fn)
++#     print(result)
++#     print("Classification accuracy: {0:.2%}".format(result["accuracy"]))
++#     sys.stdout.flush()
++# count = count + 1
+ 
+Index: load_images.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- load_images.py	(revision 762311dd5ed8146445843d34bf04e31aaa464f33)
++++ load_images.py	(date 1529530812000)
+@@ -39,10 +39,8 @@
+ 
+     :param: folder_class_0: folder path of class_0 images
+     :param: folder_class_1: folder path of class_1 images
+-
+     """
+     # create an empty list to store file_name
+-    global img_name_all, img_mat_all, img_path_all, lbls
+     folder_class_0 = folder_class_0 + '/'
+     folder_class_1 = folder_class_1 + '/'
+     # file_name_0, file_name_1, file_name = list()
+@@ -99,7 +97,7 @@
+     This function can only be used with TensorFlow installed
+ 
+     :param: folder_path: folder path of the TFRecord file you want to save to
+-    :param: mode:        create a train TFRecord file or validate TFRecord file. options: 'train' or 'validate'
++    :param: mode:        create a train TFRecord file or validate TFRecord file. options: 'training' or 'validation'
+     :param: path:        path of the returned value in 'load_images_and_label_from_folder' module, eg. img_path_all
+     :param: labels:      label of the returned value in 'load_images_and_label_from_folder' module, eg. lbls
+     """
+@@ -107,7 +105,7 @@
+     for i in range(len(path)):
+         # print for every 10 loops
+         if not i % 10:
+-            print('Read training data {}/{}'.format(i, len(path)))
++            print('Read ' + mode + ' data {}/{}'.format(i, len(path)))
+             sys.stdout.flush()
+ 
+         # feed in images
+@@ -138,23 +136,58 @@
+     train_folder_dir_class_0 = '/home/tianyi/Desktop/skin/train/benign'
+     train_folder_dir_class_1 = '/home/tianyi/Desktop/skin/train/malignant'
+ 
+-    # val_folder_dir_class_0 = ''
+-    # val_folder_dir_class_0
++    validation_folder_dir_class_0 = '/home/tianyi/Desktop/skin/validate/benign'
++    validation_folder_dir_class_1 = '/home/tianyi/Desktop/skin/validate/malignant'
++
++    # The below four lines of code are one-time use to standardize the raw image file names
++    # in class 0 and class 1 folder of the training and validation dataset (you can comment out after the first run)
++    standardize_file_name(cls=0,
++                          folder_dir=train_folder_dir_class_0,
++                          file_format=".jpg")
++    standardize_file_name(cls=1,
++                          folder_dir=train_folder_dir_class_1,
++                          file_format=".jpg")
++
++    standardize_file_name(cls=0,
++                          folder_dir=validation_folder_dir_class_0,
++                          file_format=".jpg")
++    standardize_file_name(cls=1,
++                          folder_dir=validation_folder_dir_class_1,
++                          file_format=".jpg")
++
++    # create TFRecord file for training set
++    tra_img_name_all, \
++        tra_img_mat_all, \
++        tra_img_path_all, \
++        tra_lbls = \
++        load_images_and_label_from_folder(
++            folder_class_0=train_folder_dir_class_0,
++            folder_class_1=train_folder_dir_class_1)
+ 
+-    # The below two lines of code are one-time use to standardize the raw image file names in class 0 and class 1 folder
+-    # of the training dataset (you can comment out after the first run)
+-    standardize_file_name(cls=0, folder_dir=train_folder_dir_class_0, file_format=".jpg")
+-    standardize_file_name(cls=1, folder_dir=train_folder_dir_class_1, file_format=".jpg")
++    tra_folder = '/home/tianyi/Desktop/skin/train'
++    create_tfrecord(folder_path=tra_folder,
++                    mode='training',
++                    path=tra_img_path_all,
++                    labels=tra_lbls)
+ 
+-    img_name_all, img_mat_all, img_path_all, lbls = load_images_and_label_from_folder(
+-        folder_class_0=train_folder_dir_class_0, folder_class_1=train_folder_dir_class_1)
++    # create TFRecord file for validation set
++    val_img_name_all, \
++        val_img_mat_all, \
++        val_img_path_all, \
++        val_lbls = \
++        load_images_and_label_from_folder(
++            folder_class_0=validation_folder_dir_class_0,
++            folder_class_1=validation_folder_dir_class_1)
++
++    val_folder = '/home/tianyi/Desktop/skin/validate'
++    create_tfrecord(folder_path=val_folder,
++                    mode='validation',
++                    path=val_img_path_all,
++                    labels=val_lbls)
+ 
+     # # test to see if the module is correctly defined by reading an image
+     # j = 304
+-    # print(img_mat_all[j])
+-    # print(img_name_all[j])
+-    # print(lbls[j])
++    # print(val_img_mat_all[j])
++    # print(val_img_name_all[j])
++    # print(val_lbls[j])
+ 
+-    # create the tfrecord file
+-    folder = '/home/tianyi/Desktop/skin/train'
+-    create_tfrecord(folder_path=folder, mode='train', path=img_path_all, labels=lbls)

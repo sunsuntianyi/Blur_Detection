@@ -1,0 +1,923 @@
+Index: train01.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- train01.py	(date 1530061079000)
++++ train01.py	(date 1530061079000)
+@@ -0,0 +1,126 @@
++import tensorflow as tf
++import cv2
++import sys
++import numpy as np
++
++sess = tf.Session()
++sess.run(tf.global_variables_initializer())
++
++
++def parser(record):
++    keys_to_features = {
++        "image": tf.FixedLenFeature([], tf.string),
++        "label": tf.FixedLenFeature([], tf.int64)
++    }
++    parsed = tf.parse_single_example(record, keys_to_features)
++    image = tf.decode_raw(parsed["image"], tf.uint8)
++    image = tf.cast(image, tf.float32)
++    # image = tf.reshape(image, shape=[224, 224, 3])
++    label = tf.cast(parsed["label"], tf.int32)
++
++    return {'image': image}, label
++
++
++def input_fn(filenames):
++    dataset = tf.data.TFRecordDataset(filenames=filenames, num_parallel_reads=40)
++    dataset = dataset.apply(
++        tf.contrib.data.shuffle_and_repeat(1024, 1)
++    )
++    dataset = dataset.apply(
++        tf.contrib.data.map_and_batch(parser, 32)
++    )
++    # dataset = dataset.map(parser, num_parallel_calls=12)
++    # dataset = dataset.batch(batch_size=1000)
++    dataset = dataset.prefetch(buffer_size=2)
++    return dataset
++
++
++def train_input_fn():
++    return input_fn(filenames=["/home/tianyi/Desktop/skin/train/training.tfrecords", "/home/tianyi/Desktop/skin/validate/validation.tfrecords"])
++
++
++def val_input_fn():
++    return input_fn(filenames=["val.tfrecords"])
++
++
++def model_fn(features, labels, mode, params):
++    num_classes = 2
++    net = features["image"]
++
++    net = tf.identity(net, name="input_tensor")
++
++    net = tf.reshape(net, [-1, 224, 224, 3])
++
++    net = tf.identity(net, name="input_tensor_after")
++
++    net = tf.layers.conv2d(inputs=net, name='layer_conv1',
++                           filters=32, kernel_size=3,
++                           padding='same', activation=tf.nn.relu)
++    net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
++
++    net = tf.layers.conv2d(inputs=net, name='layer_conv2',
++                           filters=64, kernel_size=3,
++                           padding='same', activation=tf.nn.relu)
++    net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
++
++    net = tf.layers.conv2d(inputs=net, name='layer_conv3',
++                           filters=64, kernel_size=3,
++                           padding='same', activation=tf.nn.relu)
++    net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
++
++    net = tf.contrib.layers.flatten(net)
++
++    net = tf.layers.dense(inputs=net, name='layer_fc1',
++                          units=128, activation=tf.nn.relu)
++
++    net = tf.layers.dropout(net, rate=0.5, noise_shape=None,
++                            seed=None, training=(mode == tf.estimator.ModeKeys.TRAIN))
++
++    net = tf.layers.dense(inputs=net, name='layer_fc_2',
++                          units=num_classes)
++
++    logits = net
++    y_pred = tf.nn.softmax(logits=logits)
++
++    y_pred = tf.identity(y_pred, name="output_pred")
++
++    y_pred_cls = tf.argmax(y_pred, axis=1)
++
++    y_pred_cls = tf.identity(y_pred_cls, name="output_cls")
++
++    if mode == tf.estimator.ModeKeys.PREDICT:
++        spec = tf.estimator.EstimatorSpec(mode=mode,
++                                          predictions=y_pred_cls)
++    else:
++        cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels,
++                                                                       logits=logits)
++        loss = tf.reduce_mean(cross_entropy)
++
++        optimizer = tf.train.AdamOptimizer(learning_rate=params["learning_rate"])
++        train_op = optimizer.minimize(
++            loss=loss, global_step=tf.train.get_global_step())
++        metrics = {
++            "accuracy": tf.metrics.accuracy(labels, y_pred_cls)
++        }
++
++        spec = tf.estimator.EstimatorSpec(
++            mode=mode,
++            loss=loss,
++            train_op=train_op,
++            eval_metric_ops=metrics)
++
++    return spec
++
++
++model = tf.estimator.Estimator(model_fn=model_fn,
++                               params={"learning_rate": 1e-4},
++                               model_dir="/home/tianyi/Desktop/skin")
++
++count = 0
++while (count < 100000):
++    model.train(input_fn=train_input_fn, steps=1000)
++    # result = model.evaluate(input_fn=val_input_fn)
++    # print(result)
++    # print("Classification accuracy: {0:.2%}".format(result["accuracy"]))
++    sys.stdout.flush()
++count = count + 1
+\ No newline at end of file
+Index: .idea/misc.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- .idea/misc.xml	(revision 40640a86aa8ebe13f8b317e7da2748dde8341774)
++++ .idea/misc.xml	(date 1529784164000)
+@@ -1,4 +1,4 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <project version="4">
+-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.6 (tensorflow)" project-jdk-type="Python SDK" />
++  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.6 (tensorflow3)" project-jdk-type="Python SDK" />
+ </project>
+\ No newline at end of file
+Index: read_tfrecord.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- read_tfrecord.py	(revision 40640a86aa8ebe13f8b317e7da2748dde8341774)
++++ read_tfrecord.py	(date 1530060366000)
+@@ -60,27 +60,113 @@
+ 
+     return imgs, lbls
+ 
++####################################
++
++
++def parse(serialized):
++    # Define a dict with the data-names and types we expect to
++    # find in the TFRecords file.
++    # It is a bit awkward that this needs to be specified again,
++    # because it could have been written in the header of the
++    # TFRecords file instead.
++    features = \
++        {
++            'image': tf.FixedLenFeature([], tf.string),
++            'label': tf.FixedLenFeature([], tf.int64)
++        }
++
++    # Parse the serialized data so we get a dict with our data.
++    parsed_example = tf.parse_single_example(serialized=serialized,
++                                             features=features)
++
++    # Get the image as raw bytes.
++    image_raw = parsed_example['image']
++
++    # Decode the raw bytes so it becomes a tensor with type.
++    image = tf.decode_raw(image_raw, tf.uint8)
++
++    # The type is now uint8 but we need it to be float.
++    image = tf.cast(image, tf.float32)
++
++    # Get the label associated with the image.
++    label = parsed_example['label']
++
++    # The image and label are now correct TensorFlow types.
++    return image, label
++
++
++def input_fn(filenames, train, batch_size=32, buffer_size=1024):
++    # Args:
++    # filenames:   Filenames for the TFRecords files.
++    # train:       Boolean whether training (True) or testing (False).
++    # batch_size:  Return batches of this size.
++    # buffer_size: Read buffers of this size. The random shuffling
++    #              is done on the buffer, so it must be big enough.
++
++    # Create a TensorFlow Dataset-object which has functionality
++    # for reading and shuffling data from TFRecords files.
++    dataset = tf.data.TFRecordDataset(filenames=filenames)
++
++    # Parse the serialized data in the TFRecords files.
++    # This returns TensorFlow tensors for the image and labels.
++    dataset = dataset.map(parse)
++
++    if train:
++        # If training then read a buffer of the given size and
++        # randomly shuffle it.
++        dataset = dataset.shuffle(buffer_size=buffer_size)
++
++        # Allow infinite reading of the data.
++        num_repeat = None
++    else:
++        # If testing then don't shuffle the data.
++
++        # Only go through the data once.
++        num_repeat = 1
++
++    # Repeat the dataset the given number of times.
++    dataset = dataset.repeat(num_repeat)
++
++    # Get a batch of data with the given size.
++    dataset = dataset.batch(batch_size)
++
++    # Create an iterator for the dataset and the above modifications.
++    iterator = dataset.make_one_shot_iterator()
++
++    # Get the next batch of images and labels.
++    images_batch, labels_batch = iterator.get_next()
++
++    # The input-function must return a dict wrapping the images.
++    x = {'image': images_batch}
++    y = labels_batch
++
++    return x, y
++
+ 
+ if __name__ == "__main__":
+ 
+     data_path = '/home/tianyi/Desktop/skin/train/training.tfrecords'
+-    image_pixel = 300
+-
+-    images, labels = read_tfrecord(tfrecord_path=data_path,
+-                                   pixel=image_pixel)
++    image_pixel = 200
+ 
+-    print(images[1])
+-    print(tf.one_hot(labels, 2))
+-    # test to see if the module is correctly defined by reading an image
+-    j = 200
+-    plt.imshow(images[j])
+-    plt.title('benign' if labels[j] == 0 else 'malignant')
++    # images, labels = read_tfrecord(tfrecord_path=data_path,
++    #                                pixel=image_pixel)
++    #
++    # print(images[1])
++    # print(tf.one_hot(labels, 2))
++    # # test to see if the module is correctly defined by reading an image
++    # j = 200
++    # plt.imshow(images[j])
++    # plt.title('benign' if labels[j] == 0 else 'malignant')
++    #
++    #
+ 
+ 
+-
+-
+-
+-
++# with tf.Session as sess:
++#     sess.run(tf.global_variables_initializer())
++#     data_path_train = '/home/tianyi/Desktop/skin/train/training.tfrecords'
++#     x, y = input_fn(data_path_train, train=True, batch_size=32, buffer_size=1024)
++#     print(x)
++#     print(y)
+ 
+ 
+ 
+Index: train.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- train.py	(revision 40640a86aa8ebe13f8b317e7da2748dde8341774)
++++ train.py	(date 1530060320000)
+@@ -2,98 +2,195 @@
+ import sys
+ import cv2
+ import tensorflow as tf
+-from read_tfrecord import read_tfrecord
++import read_tfrecord
+ 
+ 
+-def build_cnn(images, labels, mode, params):
+-    num_classes = 3
+-    net = images
++def model_fn(features, labels, mode, params):
++    # Args:
++    #
++    # features: This is the x-arg from the input_fn.
++    # labels:   This is the y-arg from the input_fn.
++    # mode:     Either TRAIN, EVAL, or PREDICT
++    # params:   User-defined hyper-parameters, e.g. learning-rate.
+ 
+-    net = tf.identity(net, name="input_tensor")
++    # Reference to the tensor named "image" in the input-function.
++    x = features["image"]
+ 
+-    net = tf.reshape(net, [-1, 300, 300, 3])
++    # The convolutional layers expect 4-rank tensors
++    # but x is a 2-rank tensor, so reshape it.
++    net = tf.reshape(x, [-1, img_size, img_size, num_channels])
+ 
+-    net = tf.identity(net, name="input_tensor_after")
+-
++    # First convolutional layer.
+     net = tf.layers.conv2d(inputs=net, name='layer_conv1',
+-                           filters=32, kernel_size=3,
++                           filters=32, kernel_size=[3, 3],
+                            padding='same', activation=tf.nn.relu)
+-    net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
++    net = tf.layers.max_pooling2d(inputs=net, pool_size=[2, 2], strides=2)
+ 
++    # Second convolutional layer.
+     net = tf.layers.conv2d(inputs=net, name='layer_conv2',
+-                           filters=64, kernel_size=3,
++                           filters=32, kernel_size=[3, 3],
+                            padding='same', activation=tf.nn.relu)
+-    net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
++    net = tf.layers.max_pooling2d(inputs=net, pool_size=[2, 2], strides=2)
+ 
++    # Second convolutional layer.
+     net = tf.layers.conv2d(inputs=net, name='layer_conv3',
+-                           filters=64, kernel_size=3,
++                           filters=32, kernel_size=[3, 3],
+                            padding='same', activation=tf.nn.relu)
+-    net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
++    net = tf.layers.max_pooling2d(inputs=net, pool_size=[2, 2], strides=2)
+ 
++    # Flatten to a 2-rank tensor.
+     net = tf.contrib.layers.flatten(net)
++    # Eventually this should be replaced with:
++    # net = tf.layers.flatten(net)
+ 
++    # First fully-connected / dense layer.
++    # This uses the ReLU activation function.
+     net = tf.layers.dense(inputs=net, name='layer_fc1',
+                           units=128, activation=tf.nn.relu)
+ 
+-    net = tf.layers.dropout(net, rate=0.5, noise_shape=None,
+-                            seed=None, training=(mode == tf.estimator.ModeKeys.TRAIN))
+-
++    # Second fully-connected / dense layer.
++    # This is the last layer so it does not use an activation function.
+     net = tf.layers.dense(inputs=net, name='layer_fc_2',
+                           units=num_classes)
+ 
+-    logits = net
+-    y_pred = tf.nn.softmax(logits=logits)
++    # Logits output of the neural network.
++    logit = net
++
++    # # Dense Layer
++    # pool2_flat = tf.reshape(net, [-1, 50 * 50 * 64])
++    # dense = tf.layers.dense(inputs=pool2_flat, units=1024, activation=tf.nn.relu)
++    # dropout = tf.layers.dropout(
++    #     inputs=dense, rate=0.4, training=mode == tf.estimator.ModeKeys.TRAIN)
+ 
+-    y_pred = tf.identity(y_pred, name="output_pred")
++    # # Logit Layer
++    # logit = tf.layers.dense(inputs=dropout, units=2)
+ 
++    # Softmax output of the neural network.
++    y_pred = tf.nn.softmax(logits=logit)
++
++    # Classification output of the neural network.
+     y_pred_cls = tf.argmax(y_pred, axis=1)
+ 
+-    y_pred_cls = tf.identity(y_pred_cls, name="output_cls")
+-
+     if mode == tf.estimator.ModeKeys.PREDICT:
++        # If the estimator is supposed to be in prediction-mode
++        # then use the predicted class-number that is output by
++        # the neural network. Optimization etc. is not needed.
+         spec = tf.estimator.EstimatorSpec(mode=mode,
+                                           predictions=y_pred_cls)
+     else:
++        # Otherwise the estimator is supposed to be in either
++        # training or evaluation-mode. Note that the loss-function
++        # is also required in Evaluation mode.
++
++        # Define the loss-function to be optimized, by first
++        # calculating the cross-entropy between the output of
++        # the neural network and the true labels for the input data.
++        # This gives the cross-entropy for each image in the batch.
+         cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels,
+-                                                                       logits=logits)
++                                                                       logits=logit)
++
++        # Reduce the cross-entropy batch-tensor to a single number
++        # which can be used in optimization of the neural network.
+         loss = tf.reduce_mean(cross_entropy)
+ 
++        # Define the optimizer for improving the neural network.
+         optimizer = tf.train.AdamOptimizer(learning_rate=params["learning_rate"])
++
++        # Get the TensorFlow op for doing a single optimization step.
+         train_op = optimizer.minimize(
+             loss=loss, global_step=tf.train.get_global_step())
+-        metrics = {
+-            "accuracy": tf.metrics.accuracy(labels, y_pred_cls)
+-        }
++
++        # Define the evaluation metrics,
++        # in this case the classification accuracy.
++        metrics = \
++            {
++                "accuracy": tf.metrics.accuracy(labels, y_pred_cls)
++            }
+ 
++        # Wrap all of this in an EstimatorSpec.
+         spec = tf.estimator.EstimatorSpec(
+             mode=mode,
+             loss=loss,
+             train_op=train_op,
+             eval_metric_ops=metrics)
+ 
++    # predictions = {
++    #     # Generate predictions (for PREDICT and EVAL mode)
++    #     "classes": tf.argmax(input=logit, axis=1),
++    #     # Add `softmax_tensor` to the graph. It is used for PREDICT and by the
++    #     # `logging_hook`.
++    #     "probabilities": tf.nn.softmax(logit, name="softmax_tensor")
++    # }
++    #
++    # if mode == tf.estimator.ModeKeys.PREDICT:
++    #     return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
++    #
++    # # Calculate Loss (for both TRAIN and EVAL modes)
++    # onehot_labels = tf.one_hot(indices=tf.cast(labels, tf.int32), depth=2)
++    # loss = tf.losses.softmax_cross_entropy(onehot_labels=onehot_labels, logits=logit)
++    #
++    # if mode == tf.estimator.ModeKeys.TRAIN:
++    #     optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
++    #     train_op = optimizer.minimize(
++    #         loss=loss,
++    #         global_step=tf.train.get_global_step())
++    #     return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
++
+     return spec
+ 
+ 
+-data_path = '/home/tianyi/Desktop/skin/train/training.tfrecords'
+-image_pixel = 300
++
+ 
+-images, labels = read_tfrecord(tfrecord_path=data_path,
+-                               pixel=image_pixel)
+ 
++#
++# data_path = '/home/tianyi/Desktop/skin/train/training.tfrecords'
++# image_pixel = 300
++#
++# images, labels = read_tfrecord(tfrecord_path=data_path,
++#                                pixel=image_pixel)
++#
++#
++# labels = tf.one_hot(labels, 2)
++#
++# # build_cnn = build_cnn(images=images, labels=labels, mode=tf.estimator.ModeKeys.PREDICT, params=0.0001)
++#
++# model = tf.estimator.Estimator(model_fn=build_cnn(images=images, labels=labels, mode=tf.estimator.ModeKeys.PREDICT, params=0.0001),
++#                                model_dir="/home/tianyi/Desktop/Blur_Detection/")
++#
++# # count = 0
++# # while (count < 100000):
++# #     model.train(input_fn=train_input_fn, steps=1000)
++# #     result = model.evaluate(input_fn=val_input_fn)
++# #     print(result)
++# #     print("Classification accuracy: {0:.2%}".format(result["accuracy"]))
++# #     sys.stdout.flush()
++# # count = count + 1
+ 
+-labels = tf.one_hot(labels, 2)
+ 
+-# build_cnn = build_cnn(images=images, labels=labels, mode=tf.estimator.ModeKeys.PREDICT, params=0.0001)
++params = {"learning_rate": 1e-4}
+ 
+-model = tf.estimator.Estimator(model_fn=build_cnn(images=images, labels=labels, mode=tf.estimator.ModeKeys.PREDICT, params=0.0001),
+-                               model_dir="/home/tianyi/Desktop/Blur_Detection/")
++img_size = 224
++num_channels = 3
++num_classes = 2
+ 
+-# count = 0
+-# while (count < 100000):
+-#     model.train(input_fn=train_input_fn, steps=1000)
+-#     result = model.evaluate(input_fn=val_input_fn)
+-#     print(result)
+-#     print("Classification accuracy: {0:.2%}".format(result["accuracy"]))
+-#     sys.stdout.flush()
+-# count = count + 1
++
++def train_input_fn():
++    return read_tfrecord.input_fn(filenames=data_path_train, train=True)
++
++
++def test_input_fn():
++    return read_tfrecord.input_fn(filenames=data_path_val, train=False)
++
++
++data_path_train = '/home/tianyi/Desktop/skin/train/training.tfrecords'
++data_path_val = '/home/tianyi/Desktop/skin/train/training.tfrecords'
++
++model = tf.estimator.Estimator(model_fn=model_fn,
++                               params=params,
++                               model_dir="/home/tianyi/Desktop/skin")
++
++model.train(input_fn=train_input_fn, steps=200)
++
++# result = model.evaluate(input_fn=test_input_fn)
++# print(result)
+ 
+Index: load_images.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- load_images.py	(revision 40640a86aa8ebe13f8b317e7da2748dde8341774)
++++ load_images.py	(date 1530058771000)
+@@ -5,7 +5,7 @@
+ import numpy as np
+ 
+ 
+-def read_image_mat(path, resize=300):
++def read_image_mat(path, resize=224):
+     """
+     This function is used to read image into matrix
+ 
+Index: test00.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- test00.py	(revision 40640a86aa8ebe13f8b317e7da2748dde8341774)
++++ test00.py	(date 1529950568000)
+@@ -4,110 +4,110 @@
+ import tensorflow as tf
+ 
+ 
+-class ReadImage:
+-    def __init__(self, img_name):
+-        self.img = cv2.imread(img_name)
+-        self.__name = img_name
+-
+-    def __str__(self):
+-        return self.__name
+-
+-    @staticmethod
+-    def standardize_file_name(folder_path, file_format=".jpg"):
+-        """
+-        This function is used to rename all files in a folder
+-        """
+-        for i, filename in enumerate(os.listdir(folder_path)):
+-            os.rename(folder_path + "/" + filename, folder_path + "/" + str(i) + file_format)
+-        return
+-
+-    @staticmethod
+-    def load_images_name_from_folder(folder_class_0, folder_class_1):
+-        """"
+-        This function is used to load all images of both classes
+-        """
+-        # create an empty list to store file_name
+-        global file_name
+-        folder_class_0 = folder_class_0 + '/'
+-        folder_class_1 = folder_class_1 + '/'
+-        file_name = list()
+-        for filename in os.listdir(folder_class_0):
+-            # read file base name
+-            # img_class_0 = ReadImage(os.path.basename(os.path.join(folder_class_0, filename)))
+-            # to get full path, use: (takes lots of memory)
+-            img_class_0 = ReadImage(os.path.join(folder_class_0, filename))
+-            file_name.append(str(img_class_0))
+-
+-        for filename in os.listdir(folder_class_1):
+-            # read file base name
+-            # img_class_1 = ReadImage(os.path.basename(os.path.join(folder_class_1, filename)))
+-            # to get full path, use: (takes lots of memory)
+-            img_class_1 = ReadImage(os.path.join(folder_class_1, filename))
+-            file_name.append(str(img_class_1))
+-        return file_name
+-
+-    @staticmethod
+-    def input_parser(filename, label):
+-        """
+-        This function can only be used with TensorFlow installed
+-
+-        It is used for decoding (read in pixel value) and resizing image
+-        """
+-        # convert the label to one-hot encoding
+-        label_onehot = tf.one_hot(indices=tf.cast(label, tf.int32), depth=2)
+-        image_string = tf.read_file(filename)
+-        # decode image
+-        image_decoded = tf.image.decode_jpeg(image_string, channels=3)
+-        # convert to float
+-        image_decoded = tf.image.convert_image_dtype(image_decoded, tf.float32)
+-        # resize image
+-        image_resized = tf.image.resize_images(image_decoded, [300, 300])
+-        return image_resized, label_onehot
+-
+-
+-# step 1
+-# Training data
+-train_folder_dir_class_0 = '/home/tianyi/Desktop/data_blur/CERTH_ImageBlurDataset/TrainingSet/undistorted'
+-train_folder_dir_class_1 = '/home/tianyi/Desktop/data_blur/CERTH_ImageBlurDataset/TrainingSet/blurred'
+-
+-filenames_train = tf.constant(ReadImage.load_images_name_from_folder(
+-    folder_class_0=train_folder_dir_class_0, folder_class_1=train_folder_dir_class_1))
+-number_of_class_0 = len(os.listdir(train_folder_dir_class_0))
+-number_of_class_1 = len(os.listdir(train_folder_dir_class_1))
+-labels_train = tf.constant([0] * number_of_class_0 + [1] * number_of_class_1)
+-
+-print(file_name)
+-
+-
+-
+-zip the image address with their respective label
+-
+-
+-shuffle data
+-
+-
+-Validation data
+-val_folder_dir_class_0 = '/home/tianyi/Desktop/data_blur/CERTH_ImageBlurDataset/TrainingSet/undistorted'
+-val_folder_dir_class_1 = '/home/tianyi/Desktop/data_blur/CERTH_ImageBlurDataset/TrainingSet/blurred'
+-
+-filenames_val = tf.constant(ReadImage.load_images_name_from_folder(
+-    folder_class_0=train_folder_dir_class_0, folder_class_1=train_folder_dir_class_1))
+-number_of_class_0 = len(os.listdir(train_folder_dir_class_0))
+-number_of_class_1 = len(os.listdir(train_folder_dir_class_1))
+-labels_val = tf.constant([0] * number_of_class_0 + [1] * number_of_class_1)
+-
+-step 2: create a dataset returning slices of `filenames`
+-dataset_train = tf.contrib.data.Dataset.from_tensor_slices((filenames_train, labels_train))
+-# dataset_val = tf.contrib.data.Dataset.from_tensor_slices((filenames_val, labels_val))
+-
+-# step 3: parse every image in the dataset using map
+-dataset = dataset_train.map(ReadImage.input_parser)
+-dataset = dataset.batch(2)
+-
+-# step 4: create iterator and final input tensor
+-iterator = dataset.make_one_shot_iterator()
+-dataset, labels = iterator.get_next()
+-
++# class ReadImage:
++#     def __init__(self, img_name):
++#         self.img = cv2.imread(img_name)
++#         self.__name = img_name
++#
++#     def __str__(self):
++#         return self.__name
++#
++#     @staticmethod
++#     def standardize_file_name(folder_path, file_format=".jpg"):
++#         """
++#         This function is used to rename all files in a folder
++#         """
++#         for i, filename in enumerate(os.listdir(folder_path)):
++#             os.rename(folder_path + "/" + filename, folder_path + "/" + str(i) + file_format)
++#         return
++#
++#     @staticmethod
++#     def load_images_name_from_folder(folder_class_0, folder_class_1):
++#         """"
++#         This function is used to load all images of both classes
++#         """
++#         # create an empty list to store file_name
++#         global file_name
++#         folder_class_0 = folder_class_0 + '/'
++#         folder_class_1 = folder_class_1 + '/'
++#         file_name = list()
++#         for filename in os.listdir(folder_class_0):
++#             # read file base name
++#             # img_class_0 = ReadImage(os.path.basename(os.path.join(folder_class_0, filename)))
++#             # to get full path, use: (takes lots of memory)
++#             img_class_0 = ReadImage(os.path.join(folder_class_0, filename))
++#             file_name.append(str(img_class_0))
++#
++#         for filename in os.listdir(folder_class_1):
++#             # read file base name
++#             # img_class_1 = ReadImage(os.path.basename(os.path.join(folder_class_1, filename)))
++#             # to get full path, use: (takes lots of memory)
++#             img_class_1 = ReadImage(os.path.join(folder_class_1, filename))
++#             file_name.append(str(img_class_1))
++#         return file_name
++#
++#     @staticmethod
++#     def input_parser(filename, label):
++#         """
++#         This function can only be used with TensorFlow installed
++#
++#         It is used for decoding (read in pixel value) and resizing image
++#         """
++#         # convert the label to one-hot encoding
++#         label_onehot = tf.one_hot(indices=tf.cast(label, tf.int32), depth=2)
++#         image_string = tf.read_file(filename)
++#         # decode image
++#         image_decoded = tf.image.decode_jpeg(image_string, channels=3)
++#         # convert to float
++#         image_decoded = tf.image.convert_image_dtype(image_decoded, tf.float32)
++#         # resize image
++#         image_resized = tf.image.resize_images(image_decoded, [300, 300])
++#         return image_resized, label_onehot
++#
++#
++# # step 1
++# # Training data
++# train_folder_dir_class_0 = '/home/tianyi/Desktop/data_blur/CERTH_ImageBlurDataset/TrainingSet/undistorted'
++# train_folder_dir_class_1 = '/home/tianyi/Desktop/data_blur/CERTH_ImageBlurDataset/TrainingSet/blurred'
++#
++# filenames_train = tf.constant(ReadImage.load_images_name_from_folder(
++#     folder_class_0=train_folder_dir_class_0, folder_class_1=train_folder_dir_class_1))
++# number_of_class_0 = len(os.listdir(train_folder_dir_class_0))
++# number_of_class_1 = len(os.listdir(train_folder_dir_class_1))
++# labels_train = tf.constant([0] * number_of_class_0 + [1] * number_of_class_1)
++#
++# print(file_name)
++#
++#
++#
++# zip the image address with their respective label
++#
++#
++# shuffle data
++#
++#
++# Validation data
++# val_folder_dir_class_0 = '/home/tianyi/Desktop/data_blur/CERTH_ImageBlurDataset/TrainingSet/undistorted'
++# val_folder_dir_class_1 = '/home/tianyi/Desktop/data_blur/CERTH_ImageBlurDataset/TrainingSet/blurred'
++#
++# filenames_val = tf.constant(ReadImage.load_images_name_from_folder(
++#     folder_class_0=train_folder_dir_class_0, folder_class_1=train_folder_dir_class_1))
++# number_of_class_0 = len(os.listdir(train_folder_dir_class_0))
++# number_of_class_1 = len(os.listdir(train_folder_dir_class_1))
++# labels_val = tf.constant([0] * number_of_class_0 + [1] * number_of_class_1)
++#
++# step 2: create a dataset returning slices of `filenames`
++# dataset_train = tf.contrib.data.Dataset.from_tensor_slices((filenames_train, labels_train))
++# # dataset_val = tf.contrib.data.Dataset.from_tensor_slices((filenames_val, labels_val))
++#
++# # step 3: parse every image in the dataset using map
++# dataset = dataset_train.map(ReadImage.input_parser)
++# dataset = dataset.batch(2)
++#
++# # step 4: create iterator and final input tensor
++# iterator = dataset.make_one_shot_iterator()
++# dataset, labels = iterator.get_next()
++#
+ # with tf.Session() as sess:
+ #     print(sess.run(dataset))
+ # train_init_op = iterator.make_initializer(dataset_train)
+@@ -123,71 +123,71 @@
+ #             print(elem)
+ #         except tf.errors.OutOfRangeError:
+ #             print('End of training dataset')
+-
+-# #
+-#
+-# def build_cnn_model(labels, mode):
+-#
+-#     # Input layer
+-#     input_layer = tf.reshape(images, [-1, 300, 300, 3])
+-#
+-#     # Conv. Layer 1
+-#     conv1 = tf.layers.conv2d(
+-#         name="Conv. Layer 1",
+-#         inputs=input_layer,
+-#         filters=32,
+-#         kernel_size=[3, 3],
+-#         padding="same",
+-#         activation=tf.nn.relu)
+-#
+-#     # Pooling Layer 1
+-#     pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=2)
+-#
+-#     # Conv. Layer 2 and Pooling Layer 2
+-#     conv2 = tf.layers.conv2d(
+-#         name="Conv. Layer 2",
+-#         inputs=pool1,
+-#         filters=64,
+-#         kernel_size=[5, 5],
+-#         padding="same",
+-#         activation=tf.nn.relu)
+-#
+-#     # Pooling Layer 2
+-#     pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)
+-#
+-#     # Dense Layer
+-#     pool2_flat = tf.reshape(pool2, [-1, 126 * 126 * 64])
+-#     dense = tf.layers.dense(inputs=pool2_flat, units=1024, activation=tf.nn.relu)
+-#     dropout = tf.layers.dropout(
+-#         inputs=dense, rate=0.4, training=mode == tf.estimator.ModeKeys.TRAIN)
+-#
+-#     # Logit Layer
+-#     logit = tf.layers.dense(inputs=dropout, units=2)
+-#
+-#     predictions = {
+-#         # Generate predictions (for PREDICT and EVAL mode)
+-#         "classes": tf.argmax(input=logit, axis=1),
+-#         # Add `softmax_tensor` to the graph. It is used for PREDICT and by the
+-#         # `logging_hook`.
+-#         "probabilities": tf.nn.softmax(logit, name="softmax_tensor")
+-#     }
+-#
+-#     if mode == tf.estimator.ModeKeys.PREDICT:
+-#         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
+-#
+-#     # Calculate Loss (for both TRAIN and EVAL modes)
+-#     onehot_labels = tf.one_hot(indices=tf.cast(labels, tf.int32), depth=2)
+-#     loss = tf.losses.softmax_cross_entropy(onehot_labels=onehot_labels, logits=logit)
+-#
+-#     if mode == tf.estimator.ModeKeys.TRAIN:
+-#         optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
+-#         train_op = optimizer.minimize(
+-#             loss=loss,
+-#             global_step=tf.train.get_global_step())
+-#         return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
+-#
+-#
+ #
++# #
++
++def build_cnn_model(labels, mode):
++
++    # Input layer
++    input_layer = tf.reshape(images, [-1, 300, 300, 3])
++
++    # Conv. Layer 1
++    conv1 = tf.layers.conv2d(
++        name="Conv. Layer 1",
++        inputs=input_layer,
++        filters=32,
++        kernel_size=[3, 3],
++        padding="same",
++        activation=tf.nn.relu)
++
++    # Pooling Layer 1
++    pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=2)
++
++    # Conv. Layer 2 and Pooling Layer 2
++    conv2 = tf.layers.conv2d(
++        name="Conv. Layer 2",
++        inputs=pool1,
++        filters=64,
++        kernel_size=[5, 5],
++        padding="same",
++        activation=tf.nn.relu)
++
++    # Pooling Layer 2
++    pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)
++
++    # Dense Layer
++    pool2_flat = tf.reshape(pool2, [-1, 126 * 126 * 64])
++    dense = tf.layers.dense(inputs=pool2_flat, units=1024, activation=tf.nn.relu)
++    dropout = tf.layers.dropout(
++        inputs=dense, rate=0.4, training=mode == tf.estimator.ModeKeys.TRAIN)
++
++    # Logit Layer
++    logit = tf.layers.dense(inputs=dropout, units=2)
++
++    predictions = {
++        # Generate predictions (for PREDICT and EVAL mode)
++        "classes": tf.argmax(input=logit, axis=1),
++        # Add `softmax_tensor` to the graph. It is used for PREDICT and by the
++        # `logging_hook`.
++        "probabilities": tf.nn.softmax(logit, name="softmax_tensor")
++    }
++
++    if mode == tf.estimator.ModeKeys.PREDICT:
++        return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
++
++    # Calculate Loss (for both TRAIN and EVAL modes)
++    onehot_labels = tf.one_hot(indices=tf.cast(labels, tf.int32), depth=2)
++    loss = tf.losses.softmax_cross_entropy(onehot_labels=onehot_labels, logits=logit)
++
++    if mode == tf.estimator.ModeKeys.TRAIN:
++        optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
++        train_op = optimizer.minimize(
++            loss=loss,
++            global_step=tf.train.get_global_step())
++        return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
++
++
++
+ #
+ #
+ #
+Index: .idea/Blur_Detection.iml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- .idea/Blur_Detection.iml	(revision 40640a86aa8ebe13f8b317e7da2748dde8341774)
++++ .idea/Blur_Detection.iml	(date 1529794146000)
+@@ -1,8 +1,10 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <module type="PYTHON_MODULE" version="4">
+   <component name="NewModuleRootManager">
+-    <content url="file://$MODULE_DIR$" />
+-    <orderEntry type="jdk" jdkName="Python 3.6 (tensorflow)" jdkType="Python SDK" />
++    <content url="file://$MODULE_DIR$">
++      <sourceFolder url="file://$MODULE_DIR$/Untitled Folder" isTestSource="false" />
++    </content>
++    <orderEntry type="jdk" jdkName="Python 3.6 (tensorflow3)" jdkType="Python SDK" />
+     <orderEntry type="sourceFolder" forTests="false" />
+   </component>
+   <component name="TestRunnerService">

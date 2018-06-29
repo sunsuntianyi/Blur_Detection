@@ -1,0 +1,53 @@
+Index: train01.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- train01.py	(revision 55246e2af497e9cc00808001cd4cfa9ac2bb5d67)
++++ train01.py	(date 1530218261000)
+@@ -15,7 +15,7 @@
+     parsed = tf.parse_single_example(record, keys_to_features)
+     image = tf.decode_raw(parsed["image"], tf.uint8)
+     image = tf.cast(image, tf.float32)
+-    # image = tf.reshape(image, shape=[224, 224, 3])
++    # image = tf.reshape(image, shape=[224, 224, 12])
+     label = tf.cast(parsed["label"], tf.int32)
+ 
+     return {'image': image}, label
+@@ -40,7 +40,7 @@
+ 
+ 
+ def val_input_fn():
+-    return input_fn(filenames=["val.tfrecords"])
++    return input_fn(filenames=["/home/tianyi/Desktop/skin/validate/validation.tfrecords"])
+ 
+ 
+ def model_fn(features, labels, mode, params):
+@@ -49,7 +49,7 @@
+ 
+     net = tf.identity(net, name="input_tensor")
+ 
+-    net = tf.reshape(net, [-1, 224, 224, 3])
++    net = tf.reshape(net, [-1, 224, 224, 12])
+ 
+     net = tf.identity(net, name="input_tensor_after")
+ 
+@@ -117,10 +117,10 @@
+                                model_dir="/home/tianyi/Desktop/skin")
+ 
+ count = 0
+-while (count < 100000):
+-    model.train(input_fn=train_input_fn, steps=1000)
+-    # result = model.evaluate(input_fn=val_input_fn)
+-    # print(result)
+-    # print("Classification accuracy: {0:.2%}".format(result["accuracy"]))
++while (count < 100):
++    model.train(input_fn=train_input_fn, steps=10)
++    result = model.evaluate(input_fn=val_input_fn)
++    print(result)
++    print("Classification accuracy: {0:.2%}".format(result["accuracy"]))
+     sys.stdout.flush()
+-count = count + 1
+\ No newline at end of file
++    count = count + 1
+\ No newline at end of file
