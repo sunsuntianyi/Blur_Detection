@@ -50,7 +50,7 @@ def model_fn(features, labels, mode, params):
 
     net = tf.identity(net, name="input_tensor")
 
-    net = tf.reshape(net, [-1, 224, 224, 12])
+    net = tf.reshape(net, [-1, 224, 224, 3])
 
     net = tf.identity(net, name="input_tensor_after")
 

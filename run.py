@@ -1,10 +1,10 @@
 import create_validation_and_test_data
 import load_images
-import sys
 import read_tfrecord
 import tensorflow as tf
 import matplotlib.pyplot as plt
-
+import cv2
+import numpy as np
 
 def release_memory(a):
     del a[:]
@@ -86,6 +86,7 @@ def main(
                                 path=tra_img_path_all,
                                 labels=tra_lbls)
 
+    # flush lists memory
     release_memory(tra_img_path_all)
     release_memory(tra_lbls)
 
@@ -101,6 +102,7 @@ def main(
                                 path=val_img_path_all,
                                 labels=val_lbls)
 
+    # flush lists memory
     release_memory(val_img_path_all)
     release_memory(val_lbls)
 
@@ -116,63 +118,33 @@ def main(
                                 path=test_img_path_all,
                                 labels=test_lbls)
 
+    # flush lists memory
     release_memory(test_img_path_all)
     release_memory(test_lbls)
 
-    # # Test if image is loaded correctly from TFRecord file
-    # image_pixel = 224
-    #
-    # images, labels = read_tfrecord.read_tfrecord(tfrecord_path=tfrecord_dir,
-    #                                              pixel=image_pixel)
-    #
-    # print(tf.one_hot(labels, 2))
-    # # test to see if the module is correctly defined by reading an image
-    # j = 200
-    # plt.imshow(images[j])
-    # plt.title('cat' if labels[j] == 0 else 'dog')
+    # Test if image is loaded correctly from TFRecord file
+    image_pixel = 224
+
+    images, labels = read_tfrecord.read_tfrecord(tfrecord_path=tfrecord_dir,
+                                                 pixel=image_pixel)
+
+    print(tf.one_hot(labels, 2))
+    # test a random picture to see if the module is correctly defined by reading an image
+    j = 1
+    plt.imshow(images[j])
+    plt.title('cat' if labels[j] == 0 else 'dog')
 
     return
 
 
-main()
+if __name__ == "__main__":
 
-# def test(tfrecord_dir='/home/tianyi/Desktop/cat/train/training.tfrecords'):
-#     # Test if image is loaded correctly from TFRecord file
-#     image_pixel = 224
-#
-#     images, labels = read_tfrecord.read_tfrecord(tfrecord_path=tfrecord_dir,
-#                                                  pixel=image_pixel)
-#
-#     print(tf.one_hot(labels, 2))
-#     # test to see if the module is correctly defined by reading an image
-#     j = 200
-#     plt.imshow(images[j])
-#     plt.title('cat' if labels[j] == 0 else 'dog')
-#
-#     return
-#
-#
-# test()
-#
-#
-# image = load_images.read_image_mat('/home/tianyi/Desktop/cat/train/cat/class_0_89.jpg', resize=224)
-# plt.imshow(image)
+    images, labels = read_tfrecord.read_tfrecord(tfrecord_path='/home/tianyi/Desktop/cat/test/testing.tfrecords',
+                                                 pixel=224)
 
-# def sizeof_fmt(num, suffix='B'):
-#     ''' By Fred Cirera, after https://stackoverflow.com/a/1094933/1870254'''
-#     for unit in ['','Ki','Mi','Gi','Ti','Pi','Ei','Zi']:
-#         if abs(num) < 1024.0:
-#             return "%3.1f%s%s" % (num, unit, suffix)
-#         num /= 1024.0
-#     return "%.1f%s%s" % (num, 'Yi', suffix)
-#
-#
-# for name, size in sorted(((name, sys.getsizeof(value)) for name,value in locals().items()),
-#                          key= lambda x: -x[1])[:10]:
-#     print("{:>30}: {:>8}".format(name,sizeof_fmt(size)))
-
-
-# print(sys.getsizeof(tra_img_name_all))
-# print(sys.getsizeof(tra_img_mat_all))
-# print(sys.getsizeof(tra_img_path_all))
-# print(sys.getsizeof(tra_lbls))
+    # test a random picture to see if the module is correctly defined by reading an image
+    j = 1
+    # change data type from float32 to uint8 to correctly show the image color
+    image = images.astype(np.uint8)
+    plt.imshow(image[j])
+    plt.title('cat' if labels[j] == 0 else 'dog')

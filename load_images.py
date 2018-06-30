@@ -13,8 +13,13 @@ def read_image_mat(path, resize=224):
     :param: resize:   resize image pixel, default is 224
     """
     img = cv2.imread(path)
-    # img = cv2.resize(img, (resize, resize))
-    img = cv2.resize(img, (resize, resize), interpolation=cv2.INTER_CUBIC)
+
+    # Shrink image
+    img = cv2.resize(img, (resize, resize), interpolation=cv2.INTER_AREA)
+
+    # # enlarge image
+    # img = cv2.resize(img, (resize, resize), interpolation=cv2.INTER_CUBIC)
+
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = img.astype(np.float32)
     return img
@@ -68,6 +73,7 @@ def load_images_and_label_from_folder(folder_class_0, folder_class_1):
         # # read image matrix for class 0
         # read_img_mat_class_0 = read_image_mat(os.path.join(folder_class_0, filename))
         # img_mat_class_0.append(read_img_mat_class_0)
+
         # read image path for class 0
         read_img_path_class_0 = os.path.abspath(os.path.join(folder_class_0, filename))
         image_path_class_0.append(read_img_path_class_0)
@@ -83,6 +89,7 @@ def load_images_and_label_from_folder(folder_class_0, folder_class_1):
         # # read image matrix for class 1
         # read_img_mat_class_1 = read_image_mat(os.path.join(folder_class_1, filename))
         # img_mat_class_1.append(read_img_mat_class_1)
+
         # read image path for class 1
         read_img_path_class_1 = os.path.abspath(os.path.join(folder_class_1, filename))
         image_path_class_1.append(read_img_path_class_1)
@@ -117,7 +124,7 @@ def create_tfrecord(folder_path, mode, path, labels):
     """
 
     tfwriter = tf.python_io.TFRecordWriter(folder_path + '/' + mode + '.tfrecords')
-    print('Now create TFRecord file for ' + mode + 'data')
+    print('Now create TFRecord file for ' + mode + ' data')
 
     for i in range(len(path)):
         # print for every 10 loops
@@ -145,6 +152,6 @@ def create_tfrecord(folder_path, mode, path, labels):
 
     tfwriter.close()
     sys.stdout.flush()
-    print('TFRecord file created for ' + mode + 'data')
+    print('TFRecord file created for ' + mode + ' data')
 
     return
