@@ -13,6 +13,7 @@ def read_image_mat(path, resize=224):
     :param: resize:   resize image pixel, default is 224
     """
     img = cv2.imread(path)
+    # img = cv2.resize(img, (resize, resize))
     img = cv2.resize(img, (resize, resize), interpolation=cv2.INTER_CUBIC)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = img.astype(np.float32)
@@ -28,13 +29,19 @@ def standardize_file_name(cls, folder_dir, file_format='.jpg'):
     :param: file_format:  image format, default: '.jpg'
     """
     if cls == 0:
-        for i, filename in enumerate(sorted(os.listdir(folder_dir), key=lambda name: int(name[8:-4]))):
+        for i, filename in enumerate(os.listdir(folder_dir)):
             os.rename(os.path.join(folder_dir, filename), folder_dir + "/" + "class_0_" + str(i) + file_format)
+
+        # for i, filename in enumerate(sorted(os.listdir(folder_dir), key=lambda name: int(name[4:-4]))):
+        #     os.rename(os.path.join(folder_dir, filename), folder_dir + "/" + "class_0_" + str(i) + file_format)
         return
 
     if cls == 1:
-        for i, filename in enumerate(sorted(os.listdir(folder_dir), key=lambda name: int(name[8:-4]))):
+        for i, filename in enumerate(os.listdir(folder_dir)):
             os.rename(os.path.join(folder_dir, filename), folder_dir + "/" + "class_1_" + str(i) + file_format)
+
+        # for i, filename in enumerate(sorted(os.listdir(folder_dir), key=lambda name: int(name[4:-4]))):
+        #     os.rename(os.path.join(folder_dir, filename), folder_dir + "/" + "class_1_" + str(i) + file_format)
         return
     return
 
@@ -50,41 +57,42 @@ def load_images_and_label_from_folder(folder_class_0, folder_class_1):
     folder_class_0 = folder_class_0 + '/'
     folder_class_1 = folder_class_1 + '/'
     # create empty lists
-    img_mat_class_0, img_mat_class_1, img_mat_all = [], [], []
-    img_name_class_0, img_name_class_1, img_name_all = [], [], []
+    # img_mat_class_0, img_mat_class_1, img_mat_all = [], [], []
+    # img_name_class_0, img_name_class_1, img_name_all = [], [], []
     image_path_class_0, image_path_class_1, image_path_all = [], [], []
 
-    for filename in os.listdir(folder_class_0):
-        # read image name for class 0
-        read_img_name_class_0 = os.path.basename(os.path.join(folder_class_0, filename))
-        img_name_class_0.append(read_img_name_class_0)
-        # read image matrix for class 0
-        read_img_mat_class_0 = read_image_mat(os.path.join(folder_class_0, filename))
-        img_mat_class_0.append(read_img_mat_class_0)
+    for filename in sorted(os.listdir(folder_class_0), key=lambda name: int(name[8:-4])):
+        # # read image name for class 0
+        # read_img_name_class_0 = os.path.basename(os.path.join(folder_class_0, filename))
+        # img_name_class_0.append(read_img_name_class_0)
+        # # read image matrix for class 0
+        # read_img_mat_class_0 = read_image_mat(os.path.join(folder_class_0, filename))
+        # img_mat_class_0.append(read_img_mat_class_0)
         # read image path for class 0
         read_img_path_class_0 = os.path.abspath(os.path.join(folder_class_0, filename))
         image_path_class_0.append(read_img_path_class_0)
 
-    # sort the list based on the in-between number 1,2,3 etc.. eg. class_0_1.jpg, class_0_2.jpg
-    img_name_class_0 = sorted(img_name_class_0, key=lambda name: int(name[8:-4]))
+    # # sort the list based on the in-between number 1,2,3 etc.. eg. class_0_1.jpg, class_0_2.jpg
+    # img_name_class_0 = sorted(img_name_class_0, key=lambda name: int(name[8:-4]))
 
-    for filename in os.listdir(folder_class_1):
-        # read image name for class 1
-        read_img_name_class_1 = os.path.basename(os.path.join(folder_class_1, filename))
-        img_name_class_1.append(read_img_name_class_1)
-        # read image matrix for class 1
-        read_img_mat_class_1 = read_image_mat(os.path.join(folder_class_1, filename))
-        img_mat_class_1.append(read_img_mat_class_1)
+    # for loop with sort the list based on the in-between number 1,2,3 etc.. eg. class_1_1.jpg, class_1_2.jpg
+    for filename in sorted(os.listdir(folder_class_1), key=lambda name: int(name[8:-4])):
+        # # read image name for class 1
+        # read_img_name_class_1 = os.path.basename(os.path.join(folder_class_1, filename))
+        # img_name_class_1.append(read_img_name_class_1)
+        # # read image matrix for class 1
+        # read_img_mat_class_1 = read_image_mat(os.path.join(folder_class_1, filename))
+        # img_mat_class_1.append(read_img_mat_class_1)
         # read image path for class 1
         read_img_path_class_1 = os.path.abspath(os.path.join(folder_class_1, filename))
         image_path_class_1.append(read_img_path_class_1)
 
-    # sort the list based on the in-between number 1,2,3 etc.. eg. class_1_1.jpg, class_1_2.jpg
-    img_name_class_1 = sorted(img_name_class_1, key=lambda name: int(name[8:-4]))
+    # # sort the list based on the in-between number 1,2,3 etc.. eg. class_1_1.jpg, class_1_2.jpg
+    # img_name_class_1 = sorted(img_name_class_1, key=lambda name: int(name[8:-4]))
 
-    # # combine the two lists to create the final lists for both classes
-    img_mat_all = img_mat_class_0 + img_mat_class_1
-    img_name_all = img_name_class_0 + img_name_class_1
+    # combine the two lists to create the final lists for both classes
+    # img_mat_all = img_mat_class_0 + img_mat_class_1
+    # img_name_all = img_name_class_0 + img_name_class_1
     img_path_all = image_path_class_0 + image_path_class_1
 
     # create and load label
@@ -92,7 +100,7 @@ def load_images_and_label_from_folder(folder_class_0, folder_class_1):
     number_of_class_1 = len(os.listdir(folder_class_1))
     lbls = [0] * number_of_class_0 + [1] * number_of_class_1
 
-    return img_name_all, img_mat_all, img_path_all, lbls
+    return img_path_all, lbls
 
 
 def create_tfrecord(folder_path, mode, path, labels):
@@ -107,11 +115,14 @@ def create_tfrecord(folder_path, mode, path, labels):
     :param: path:        path of the returned value in 'load_images_and_label_from_folder' module, eg. img_path_all
     :param: labels:      label of the returned value in 'load_images_and_label_from_folder' module, eg. lbls
     """
+
     tfwriter = tf.python_io.TFRecordWriter(folder_path + '/' + mode + '.tfrecords')
+    print('Now create TFRecord file for ' + mode + 'data')
+
     for i in range(len(path)):
         # print for every 10 loops
         if not i % 10:
-            print('Read ' + mode + ' data {}/{}'.format(i, len(path)))
+            print('Read in ' + mode + ' data {}/{}'.format(i, len(path)))
             sys.stdout.flush()
 
         # feed in images
@@ -134,5 +145,6 @@ def create_tfrecord(folder_path, mode, path, labels):
 
     tfwriter.close()
     sys.stdout.flush()
+    print('TFRecord file created for ' + mode + 'data')
 
     return

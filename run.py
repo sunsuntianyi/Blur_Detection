@@ -1,40 +1,47 @@
 import create_validation_and_test_data
 import load_images
+import sys
 import read_tfrecord
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
 
+def release_memory(a):
+    del a[:]
+    del a
+
+
 def main(
-        tra_folder='/home/tianyi/Desktop/skin/train',
-        val_folder='/home/tianyi/Desktop/skin/validate',
-        test_folder='/home/tianyi/Desktop/skin/test',
+        tra_folder='/home/tianyi/Desktop/cat/train',
+        val_folder='/home/tianyi/Desktop/cat/validate',
+        test_folder='/home/tianyi/Desktop/cat/test',
 
-        train_folder_dir_class_0='/home/tianyi/Desktop/skin/train/benign',
-        train_folder_dir_class_1='/home/tianyi/Desktop/skin/train/malignant',
+        train_folder_dir_class_0='/home/tianyi/Desktop/cat/train/cat',
+        train_folder_dir_class_1='/home/tianyi/Desktop/cat/train/dog',
 
-        validation_folder_dir_class_0='/home/tianyi/Desktop/skin/validate/benign',
-        validation_folder_dir_class_1='/home/tianyi/Desktop/skin/validate/malignant',
+        validation_folder_dir_class_0='/home/tianyi/Desktop/cat/validate/cat',
+        validation_folder_dir_class_1='/home/tianyi/Desktop/cat/validate/dog',
 
-        test_folder_dir_class_0='/home/tianyi/Desktop/skin/validate/benign',
-        test_folder_dir_class_1='/home/tianyi/Desktop/skin/validate/malignant',
+        test_folder_dir_class_0='/home/tianyi/Desktop/cat/test/cat',
+        test_folder_dir_class_1='/home/tianyi/Desktop/cat/test/dog',
 
-        tfrecord_dir='/home/tianyi/Desktop/skin/train/training.tfrecords'
+        tfrecord_dir='/home/tianyi/Desktop/cat/train/training.tfrecords'
+
 
 ):
     # create validation class_0 and class_1 sub-folder
     create_validation_and_test_data.create_folder(data_dir=val_folder,
-                                                  folder_name='benign')
+                                                  folder_name='cat')
 
     create_validation_and_test_data.create_folder(data_dir=val_folder,
-                                                  folder_name='malignant')
+                                                  folder_name='dog')
 
     # create testing class_0 and class_1 sub-folder
     create_validation_and_test_data.create_folder(data_dir=test_folder,
-                                                  folder_name='benign')
+                                                  folder_name='cat')
 
     create_validation_and_test_data.create_folder(data_dir=test_folder,
-                                                  folder_name='malignant')
+                                                  folder_name='dog')
 
     # split class_0 training data
     create_validation_and_test_data.split_and_move_training_data(train_dir=train_folder_dir_class_0,
@@ -68,9 +75,7 @@ def main(
                                       file_format=".jpg")
 
     # create TFRecord file for training set
-    tra_img_name_all,\
-        tra_img_mat_all,\
-        tra_img_path_all,\
+    tra_img_path_all,\
         tra_lbls = \
         load_images.load_images_and_label_from_folder(
             folder_class_0=train_folder_dir_class_0,
@@ -81,10 +86,11 @@ def main(
                                 path=tra_img_path_all,
                                 labels=tra_lbls)
 
+    release_memory(tra_img_path_all)
+    release_memory(tra_lbls)
+
     # create TFRecord file for validation set
-    val_img_name_all,\
-        val_img_mat_all,\
-        val_img_path_all,\
+    val_img_path_all,\
         val_lbls = \
         load_images.load_images_and_label_from_folder(
             folder_class_0=validation_folder_dir_class_0,
@@ -95,10 +101,11 @@ def main(
                                 path=val_img_path_all,
                                 labels=val_lbls)
 
+    release_memory(val_img_path_all)
+    release_memory(val_lbls)
+
     # create TFRecord file for testing set
-    test_img_name_all,\
-        test_img_mat_all,\
-        test_img_path_all,\
+    test_img_path_all,\
         test_lbls = \
         load_images.load_images_and_label_from_folder(
             folder_class_0=test_folder_dir_class_0,
@@ -109,16 +116,63 @@ def main(
                                 path=test_img_path_all,
                                 labels=test_lbls)
 
-    # Test if image is loaded correctly from TFRecord file
-    image_pixel = 224
+    release_memory(test_img_path_all)
+    release_memory(test_lbls)
 
-    images, labels = read_tfrecord.read_tfrecord(tfrecord_path=tfrecord_dir,
-                                                 pixel=image_pixel)
+    # # Test if image is loaded correctly from TFRecord file
+    # image_pixel = 224
+    #
+    # images, labels = read_tfrecord.read_tfrecord(tfrecord_path=tfrecord_dir,
+    #                                              pixel=image_pixel)
+    #
+    # print(tf.one_hot(labels, 2))
+    # # test to see if the module is correctly defined by reading an image
+    # j = 200
+    # plt.imshow(images[j])
+    # plt.title('cat' if labels[j] == 0 else 'dog')
 
-    print(tf.one_hot(labels, 2))
-    # test to see if the module is correctly defined by reading an image
-    j = 200
-    plt.imshow(images[j])
-    plt.title('benign' if labels[j] == 0 else 'malignant')
+    return
 
 
+main()
+
+# def test(tfrecord_dir='/home/tianyi/Desktop/cat/train/training.tfrecords'):
+#     # Test if image is loaded correctly from TFRecord file
+#     image_pixel = 224
+#
+#     images, labels = read_tfrecord.read_tfrecord(tfrecord_path=tfrecord_dir,
+#                                                  pixel=image_pixel)
+#
+#     print(tf.one_hot(labels, 2))
+#     # test to see if the module is correctly defined by reading an image
+#     j = 200
+#     plt.imshow(images[j])
+#     plt.title('cat' if labels[j] == 0 else 'dog')
+#
+#     return
+#
+#
+# test()
+#
+#
+# image = load_images.read_image_mat('/home/tianyi/Desktop/cat/train/cat/class_0_89.jpg', resize=224)
+# plt.imshow(image)
+
+# def sizeof_fmt(num, suffix='B'):
+#     ''' By Fred Cirera, after https://stackoverflow.com/a/1094933/1870254'''
+#     for unit in ['','Ki','Mi','Gi','Ti','Pi','Ei','Zi']:
+#         if abs(num) < 1024.0:
+#             return "%3.1f%s%s" % (num, unit, suffix)
+#         num /= 1024.0
+#     return "%.1f%s%s" % (num, 'Yi', suffix)
+#
+#
+# for name, size in sorted(((name, sys.getsizeof(value)) for name,value in locals().items()),
+#                          key= lambda x: -x[1])[:10]:
+#     print("{:>30}: {:>8}".format(name,sizeof_fmt(size)))
+
+
+# print(sys.getsizeof(tra_img_name_all))
+# print(sys.getsizeof(tra_img_mat_all))
+# print(sys.getsizeof(tra_img_path_all))
+# print(sys.getsizeof(tra_lbls))

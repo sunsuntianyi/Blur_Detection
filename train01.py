@@ -36,11 +36,12 @@ def input_fn(filenames):
 
 
 def train_input_fn():
-    return input_fn(filenames=["/Users/TonY/Desktop/training.tfrecords", "/Users/TonY/Desktop/validation.tfrecords"])
+    return input_fn(filenames=["/home/tianyi/Desktop/cat/train/training.tfrecords",
+                               "/home/tianyi/Desktop/cat/validate/validation.tfrecords"])
 
 
 def val_input_fn():
-    return input_fn(filenames=["/home/tianyi/Desktop/skin/validate/validation.tfrecords"])
+    return input_fn(filenames=["/home/tianyi/Desktop/cat/test/testing.tfrecords"])
 
 
 def model_fn(features, labels, mode, params):
@@ -114,10 +115,10 @@ def model_fn(features, labels, mode, params):
 
 model = tf.estimator.Estimator(model_fn=model_fn,
                                params={"learning_rate": 1e-4},
-                               model_dir="/Users/TonY/Desktop/Data_Prep")
+                               model_dir="/home/tianyi/Desktop/cat/checkpoints")
 
 count = 0
-while (count < 100):
+while count < 100:
     model.train(input_fn=train_input_fn, steps=10)
     result = model.evaluate(input_fn=val_input_fn)
     print(result)

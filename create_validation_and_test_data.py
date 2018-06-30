@@ -20,19 +20,28 @@ def create_folder(data_dir, folder_name):
     return
 
 
-def split_and_move_training_data(train_dir, val_dir, test_dir, val_portion=0.3, test_portion=0.1):
+def split_and_move_training_data(train_dir, val_dir, test_dir, val_portion=0.2, test_portion=0.2):
     """
     This function is used to split data from the training set to validation set
     (if you do not have validation set)
+
+    :param: train_dir:  training data folder directory
+    :param: val_dir:    validation data folder directory
+    :param: test_dir:   testing data folder directory
+    :param: val_portion:    proportion of the training data which you want to move to validation folder, default: 20%
+    :param: test_portion:   proportion of the remaining training data which you want to move to validation folder, default: 20%
     """
+    # MOVE TO VALIDATION FOLDER
     all_file_path = []
     # read all file names in the train_dir
     for filename in os.listdir(train_dir):
         read_list = os.path.abspath(os.path.join(train_dir, filename))
         all_file_path.append(read_list)
 
+    total_num = len(all_file_path)
+
     # random select files from training list to create validation list
-    val_list = np.random.choice(all_file_path, replace=False, size=int(np.floor(portion * len(all_file_path))))
+    val_list = np.random.choice(all_file_path, replace=False, size=int(np.floor(val_portion * total_num)))
 
     # move the randomly selected file from train_dir to val_dir
     for i in range(len(val_list)):
@@ -43,10 +52,16 @@ def split_and_move_training_data(train_dir, val_dir, test_dir, val_portion=0.3, 
             print('Validation file already moved, please check')
             break
 
-    # random select files from training list to create validation list
-    test_list = np.random.choice(all_file_path, replace=False, size=int(np.floor(portion * len(all_file_path))))
+    # MOVE TO TESTING FOLDER
+    all_file_path = []
+    # read all file names in the train_dir
+    for filename in os.listdir(train_dir):
+        read_list = os.path.abspath(os.path.join(train_dir, filename))
+        all_file_path.append(read_list)
 
-    # move the randomly selected file from train_dir to val_dir
+    # random select files from training list to create test list
+    test_list = np.random.choice(all_file_path, replace=False, size=int(np.floor(test_portion * total_num)))
+    # move the randomly selected remaining file from train_dir to test_dir
     for i in range(len(test_list)):
         # break to prevent repetitive user run in future
         if len(os.listdir(test_dir)) <= test_portion * len(os.listdir(train_dir)):
@@ -56,4 +71,5 @@ def split_and_move_training_data(train_dir, val_dir, test_dir, val_portion=0.3, 
             break
 
     return
+
 
