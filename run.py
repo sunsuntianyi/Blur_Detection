@@ -1,10 +1,11 @@
 import create_validation_and_test_data
 import load_images
 import read_tfrecord
+
 import tensorflow as tf
 import matplotlib.pyplot as plt
-import cv2
 import numpy as np
+
 
 def release_memory(a):
     del a[:]
@@ -131,6 +132,7 @@ def main(
     print(tf.one_hot(labels, 2))
     # test a random picture to see if the module is correctly defined by reading an image
     j = 1
+    images = images.astype(np.uint8)
     plt.imshow(images[j])
     plt.title('cat' if labels[j] == 0 else 'dog')
 
@@ -139,12 +141,4 @@ def main(
 
 if __name__ == "__main__":
 
-    images, labels = read_tfrecord.read_tfrecord(tfrecord_path='/home/tianyi/Desktop/cat/test/testing.tfrecords',
-                                                 pixel=224)
-
-    # test a random picture to see if the module is correctly defined by reading an image
-    j = 1
-    # change data type from float32 to uint8 to correctly show the image color
-    image = images.astype(np.uint8)
-    plt.imshow(image[j])
-    plt.title('cat' if labels[j] == 0 else 'dog')
+    main()
