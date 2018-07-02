@@ -15,6 +15,7 @@
       <w>pred</w>
       <w>resized</w>
       <w>softmax</w>
+      <w>tensorflow</w>
       <w>tfrecord</w>
       <w>tfrecords</w>
       <w>tfwriter</w>

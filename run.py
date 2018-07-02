@@ -6,8 +6,19 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
 
+"""
+##################################### Scroll down to "__main__" for reference #####################################
+
+################################ Make sure TensorFlow version is up-to-date (1.8) ################################
+"""
+
 
 def release_memory(a):
+    """
+    This function is used to flush list memory
+
+    :param: a: name of the list
+    """
     del a[:]
     del a
 
@@ -134,7 +145,8 @@ def main(
                                                  pixel=image_pixel)
 
     print(tf.one_hot(labels, 2))
-    # test a random picture to see if the module is correctly defined by reading an image
+    # test a random picture from the output of the TFRecord file
+    # to see if the module is correctly defined by reading an image
     j = 1
     images = images.astype(np.uint8)
     plt.imshow(images[j])
@@ -146,33 +158,68 @@ def main(
 if __name__ == "__main__":
 
     """
-    This main function is used to:
+    Instruction:
+    
+    (IMPORTANT) 
+    
+    OPTION_1: Download the zip file (skin.zip) from Google Drive and unzip to obtain the 'skin' dataset folder
+                "https://drive.google.com/file/d/1xb3xrEg4Zjyg1jGB8b1ElsZ29sLtBzz3/view?usp=sharing"
+    
+    OPTION_2: Download the raw 'skin' folder from Google Drive
+                "https://drive.google.com/drive/folders/1F8EJ5-0NJFR5vDeObVMmJrxAGeQDgjpe?usp=sharing"
+                
+    This main function is used to: 
+    
+    (It can be used for all .jpg imagery dataset with two classes, but we will use skin dataset for demo)
+    
      1. Create validate and test data and their respective class sub-folder: 
             it will automatically create empty folder to store validate and test datasets
      2. Randomly pick data from train folder and move it to 
             validate and test folder with default ratio (refer to function description)
-     3. Read in images from these three folders and create their TFRecord respectively
-     4. Read one image from the train TFRecord file to see if the images were stored correctly 
+     3. Read in images from these train, validate, test folders and create their TFRecord respectively in it
+     4. Read one image from the train TFRecord file to see if the images and its respective label were stored correctly
+     
+     Any detailed description of each function called, please refer to its respective module
      
     ################################### Please look at my own path below reference ###################################
     
-    :param: dataset_dir:                                  Path of the dataset folder you had (downloaded)
+    :param: dataset_dir:                                  Path of the (skin) dataset folder you had 
+                                                            (downloaded from INSTRUCTION)
 
     :param: train_folder_dir_class_0:                     Path of the train dataset for class 0 folder
+                                                            folder will automatically be created when called
+                                                            just change the path before '/train/benign'
+    
     :param: train_folder_dir_class_1:                     Path of the train dataset for class 1 folder
+                                                            folder will automatically be created when called
+                                                            just change the path before '/train/malignant'
     
     :param: validation_folder_dir_class_0:                Path of the validate dataset for class 0 folder
-    :param: validation_folder_dir_class_1:                Path of the validate dataset for class 1 folder  
+                                                            folder will automatically be created when called
+                                                            just change the path before '/validate/benign'
+                                                            
+    :param: validation_folder_dir_class_1:                Path of the validate dataset for class 1 folder 
+                                                            folder will automatically be created when called
+                                                            just change the path before '/validate/malignant'
     
-    :param: test_folder_dir_class_0:                      Path of the test dataset for class 0 folder          
+    :param: test_folder_dir_class_0:                      Path of the test dataset for class 0 folder
+                                                            folder will automatically be created when called
+                                                            just change the path before '/test/benign'  
+                                                                    
     :param: test_folder_dir_class_1:                      Path of the test dataset for class 1 folder
+                                                            folder will automatically be created when called
+                                                            just change the path before '/test/malignant'
+    
     
     :param: tfrecord_dir:                                 TFRecord file directory for train dataset
+                                                           this TFRecord file will automatically be created when called, 
+                                                           so just change the path before '/training.tfrecords'
     
     :param: folder_name_class_0: Default is 'benign', no need to change this parameter if use skin dataset
     :param: folder_name_class_1: Default is 'malignant', no need to change this parameter if use skin dataset
     """
 
+    # Change all 8 paths and call the function
     main(
 
         dataset_dir='/home/tianyi/Desktop/skin',
