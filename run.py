@@ -13,36 +13,40 @@ def release_memory(a):
 
 
 def main(
-        tra_folder='/home/tianyi/Desktop/cat/train',
-        val_folder='/home/tianyi/Desktop/cat/validate',
-        test_folder='/home/tianyi/Desktop/cat/test',
+        dataset_dir,
 
-        train_folder_dir_class_0='/home/tianyi/Desktop/cat/train/cat',
-        train_folder_dir_class_1='/home/tianyi/Desktop/cat/train/dog',
+        train_folder_dir_class_0,
+        train_folder_dir_class_1,
 
-        validation_folder_dir_class_0='/home/tianyi/Desktop/cat/validate/cat',
-        validation_folder_dir_class_1='/home/tianyi/Desktop/cat/validate/dog',
+        validation_folder_dir_class_0,
+        validation_folder_dir_class_1,
 
-        test_folder_dir_class_0='/home/tianyi/Desktop/cat/test/cat',
-        test_folder_dir_class_1='/home/tianyi/Desktop/cat/test/dog',
+        test_folder_dir_class_0,
+        test_folder_dir_class_1,
 
-        tfrecord_dir='/home/tianyi/Desktop/cat/train/training.tfrecords'
+        tfrecord_dir,
 
-
+        folder_name_class_0='benign',
+        folder_name_class_1='malignant'
 ):
+
+    tra_folder = dataset_dir + '/train'
+    val_folder = dataset_dir + '/validate'
+    test_folder = dataset_dir + '/test'
+
     # create validation class_0 and class_1 sub-folder
     create_validation_and_test_data.create_folder(data_dir=val_folder,
-                                                  folder_name='cat')
+                                                  folder_name=folder_name_class_0)
 
     create_validation_and_test_data.create_folder(data_dir=val_folder,
-                                                  folder_name='dog')
+                                                  folder_name=folder_name_class_1)
 
     # create testing class_0 and class_1 sub-folder
     create_validation_and_test_data.create_folder(data_dir=test_folder,
-                                                  folder_name='cat')
+                                                  folder_name=folder_name_class_0)
 
     create_validation_and_test_data.create_folder(data_dir=test_folder,
-                                                  folder_name='dog')
+                                                  folder_name=folder_name_class_1)
 
     # split class_0 training data
     create_validation_and_test_data.split_and_move_training_data(train_dir=train_folder_dir_class_0,
@@ -134,11 +138,54 @@ def main(
     j = 1
     images = images.astype(np.uint8)
     plt.imshow(images[j])
-    plt.title('cat' if labels[j] == 0 else 'dog')
+    plt.title('benign' if labels[j] == 0 else 'malignant')
 
     return
 
 
 if __name__ == "__main__":
 
-    main()
+    """
+    This main function is used to:
+     1. Create validate and test data and their respective class sub-folder: 
+            it will automatically create empty folder to store validate and test datasets
+     2. Randomly pick data from train folder and move it to 
+            validate and test folder with default ratio (refer to function description)
+     3. Read in images from these three folders and create their TFRecord respectively
+     4. Read one image from the train TFRecord file to see if the images were stored correctly 
+     
+    ################################### Please look at my own path below reference ###################################
+    
+    :param: dataset_dir:                                  Path of the dataset folder you had (downloaded)
+
+    :param: train_folder_dir_class_0:                     Path of the train dataset for class 0 folder
+    :param: train_folder_dir_class_1:                     Path of the train dataset for class 1 folder
+    
+    :param: validation_folder_dir_class_0:                Path of the validate dataset for class 0 folder
+    :param: validation_folder_dir_class_1:                Path of the validate dataset for class 1 folder  
+    
+    :param: test_folder_dir_class_0:                      Path of the test dataset for class 0 folder          
+    :param: test_folder_dir_class_1:                      Path of the test dataset for class 1 folder
+    
+    :param: tfrecord_dir:                                 TFRecord file directory for train dataset
+    
+    :param: folder_name_class_0: Default is 'benign', no need to change this parameter if use skin dataset
+    :param: folder_name_class_1: Default is 'malignant', no need to change this parameter if use skin dataset
+    """
+
+    main(
+
+        dataset_dir='/home/tianyi/Desktop/skin',
+
+        train_folder_dir_class_0='/home/tianyi/Desktop/skin/train/benign',
+        train_folder_dir_class_1='/home/tianyi/Desktop/skin/train/malignant',
+
+        validation_folder_dir_class_0='/home/tianyi/Desktop/skin/validate/benign',
+        validation_folder_dir_class_1='/home/tianyi/Desktop/skin/validate/malignant',
+
+        test_folder_dir_class_0='/home/tianyi/Desktop/skin/test/benign',
+        test_folder_dir_class_1='/home/tianyi/Desktop/skin/test/malignant',
+
+        tfrecord_dir='/home/tianyi/Desktop/skin/train/training.tfrecords',
+    )
+

@@ -13,21 +13,22 @@ def parser(record):
         "label": tf.FixedLenFeature([], tf.int64)
     }
     parsed = tf.parse_single_example(record, keys_to_features)
-    image = tf.decode_raw(parsed["image"], tf.uint8)
-    image = tf.cast(image, tf.float32)
-    # image = tf.reshape(image, shape=[224, 224, 12])
+    image = tf.decode_raw(parsed["image"], tf.float32)
+    # image = tf.decode_raw(parsed["image"], tf.uint8)
+    # image = tf.cast(image, tf.float32)
+    # image = tf.reshape(image, shape=[224, 224, 3])
     label = tf.cast(parsed["label"], tf.int32)
 
     return {'image': image}, label
 
 
 def input_fn(filenames):
-    dataset = tf.data.TFRecordDataset(filenames=filenames, num_parallel_reads=40)
+    dataset = tf.data.TFRecordDataset(filenames=filenames, num_parallel_reads=256)
     dataset = dataset.apply(
         tf.contrib.data.shuffle_and_repeat(1024, 1)
     )
     dataset = dataset.apply(
-        tf.contrib.data.map_and_batch(parser, 32)
+        tf.contrib.data.map_and_batch(parser, 64)
     )
     # dataset = dataset.map(parser, num_parallel_calls=12)
     # dataset = dataset.batch(batch_size=1000)
@@ -40,7 +41,7 @@ def train_input_fn():
                                "/home/tianyi/Desktop/cat/validate/validation.tfrecords"])
 
 
-def val_input_fn():
+def eval_input_fn():
     return input_fn(filenames=["/home/tianyi/Desktop/cat/test/testing.tfrecords"])
 
 
@@ -55,29 +56,51 @@ def model_fn(features, labels, mode, params):
     net = tf.identity(net, name="input_tensor_after")
 
     net = tf.layers.conv2d(inputs=net, name='layer_conv1',
-                           filters=32, kernel_size=3,
+                           filters=32, kernel_size=5,
                            padding='same', activation=tf.nn.relu)
-    net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
+    # Batch Normalization
+    net = tf.layers.batch_normalization(inputs=net, training=(mode == tf.estimator.ModeKeys.TRAIN))
+    net = tf.layers.max_pooling2d(inputs=net, pool_size=5, strides=2)
 
     net = tf.layers.conv2d(inputs=net, name='layer_conv2',
-                           filters=64, kernel_size=3,
+                           filters=64, kernel_size=5,
                            padding='same', activation=tf.nn.relu)
-    net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
+    # Batch Normalization
+    net = tf.layers.batch_normalization(inputs=net, training=(mode == tf.estimator.ModeKeys.TRAIN))
+    net = tf.layers.max_pooling2d(inputs=net, pool_size=5, strides=2)
 
     net = tf.layers.conv2d(inputs=net, name='layer_conv3',
-                           filters=64, kernel_size=3,
+                           filters=128, kernel_size=5,
                            padding='same', activation=tf.nn.relu)
-    net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
+    # Batch Normalization
+    net = tf.layers.batch_normalization(inputs=net, training=(mode == tf.estimator.ModeKeys.TRAIN))
+    net = tf.layers.max_pooling2d(inputs=net, pool_size=5, strides=2)
+    #
+    # net = tf.layers.conv2d(inputs=net, name='layer_conv4',
+    #                        filters=64, kernel_size=5,
+    #                        padding='same', activation=tf.nn.relu)
+    # net = tf.layers.max_pooling2d(inputs=net, pool_size=5, strides=2)
+    #
+    # net = tf.layers.conv2d(inputs=net, name='layer_conv5',
+    #                        filters=32, kernel_size=5,
+    #                        padding='same', activation=tf.nn.relu)
+    # net = tf.layers.max_pooling2d(inputs=net, pool_size=5, strides=2)
 
     net = tf.contrib.layers.flatten(net)
 
     net = tf.layers.dense(inputs=net, name='layer_fc1',
-                          units=128, activation=tf.nn.relu)
+                          units=1024)
 
     net = tf.layers.dropout(net, rate=0.5, noise_shape=None,
                             seed=None, training=(mode == tf.estimator.ModeKeys.TRAIN))
 
-    net = tf.layers.dense(inputs=net, name='layer_fc_2',
+    net = tf.layers.dense(inputs=net, name='layer_fc2',
+                          units=1024)
+
+    net = tf.layers.dropout(net, rate=0.5, noise_shape=None,
+                            seed=None, training=(mode == tf.estimator.ModeKeys.TRAIN))
+
+    net = tf.layers.dense(inputs=net, name='layer_fc3',
                           units=num_classes)
 
     logits = net
@@ -113,15 +136,17 @@ def model_fn(features, labels, mode, params):
     return spec
 
 
-model = tf.estimator.Estimator(model_fn=model_fn,
-                               params={"learning_rate": 1e-4},
-                               model_dir="/home/tianyi/Desktop/cat/checkpoints")
+if __name__ == "__main__":
 
-count = 0
-while count < 100:
-    model.train(input_fn=train_input_fn, steps=10)
-    result = model.evaluate(input_fn=val_input_fn)
-    print(result)
-    print("Classification accuracy: {0:.2%}".format(result["accuracy"]))
-    sys.stdout.flush()
-    count = count + 1
+    model = tf.estimator.Estimator(model_fn=model_fn,
+                                   params={"learning_rate": 1e-4},
+                                   model_dir="/home/tianyi/Desktop/cat/checkpoints")
+
+    count = 0
+    while count < 10000:
+        model.train(input_fn=train_input_fn, steps=100)
+        result = model.evaluate(input_fn=eval_input_fn)
+        print(result)
+        print("Classification accuracy: {0:.2%}".format(result["accuracy"]))
+        sys.stdout.flush()
+        count = count + 1

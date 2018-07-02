@@ -20,7 +20,7 @@ def create_folder(data_dir, folder_name):
     return
 
 
-def split_and_move_training_data(train_dir, val_dir, test_dir, val_portion=0.2, test_portion=0.2):
+def split_and_move_training_data(train_dir, val_dir, test_dir, val_portion=0.2, test_portion=0.1):
     """
     This function is used to split data from the training set to validation set
     (if you do not have validation set)
@@ -29,7 +29,7 @@ def split_and_move_training_data(train_dir, val_dir, test_dir, val_portion=0.2, 
     :param: val_dir:    validation data folder directory
     :param: test_dir:   testing data folder directory
     :param: val_portion:    proportion of the training data which you want to move to validation folder, default: 20%
-    :param: test_portion:   proportion of the remaining training data which you want to move to validation folder, default: 20%
+    :param: test_portion:   proportion of the remaining training data which you want to move to validation folder, default: 10%
     """
     # MOVE TO VALIDATION FOLDER
     all_file_path = []

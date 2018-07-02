@@ -4,193 +4,171 @@ import cv2
 import tensorflow as tf
 import read_tfrecord
 
+sess = tf.Session()
+sess.run(tf.global_variables_initializer())
 
-def model_fn(features, labels, mode, params):
-    # Args:
-    #
-    # features: This is the x-arg from the input_fn.
-    # labels:   This is the y-arg from the input_fn.
-    # mode:     Either TRAIN, EVAL, or PREDICT
-    # params:   User-defined hyper-parameters, e.g. learning-rate.
+# Training Parameters
+learning_rate = 0.0001
+batch_size = 32
 
-    # Reference to the tensor named "image" in the input-function.
-    x = features["image"]
+# Network Parameters
+num_input = 224
+num_classes = 2
+dropout = 0.5  # Dropout, probability to drop a unit
 
-    # The convolutional layers expect 4-rank tensors
-    # but x is a 2-rank tensor, so reshape it.
-    net = tf.reshape(x, [-1, img_size, img_size, num_channels])
 
-    # First convolutional layer.
-    net = tf.layers.conv2d(inputs=net, name='layer_conv1',
-                           filters=32, kernel_size=[3, 3],
-                           padding='same', activation=tf.nn.relu)
-    net = tf.layers.max_pooling2d(inputs=net, pool_size=[2, 2], strides=2)
+def parser(record):
+    keys_to_features = {
+        "image": tf.FixedLenFeature([], tf.string),
+        "label": tf.FixedLenFeature([], tf.int64)
+    }
+    parsed = tf.parse_single_example(record, keys_to_features)
+    image = tf.decode_raw(parsed["image"], tf.float32)
+    # image = tf.decode_raw(parsed["image"], tf.uint8)
+    # image = tf.cast(image, tf.float32)
+    # image = tf.reshape(image, shape=[224, 224, 3])
+    label = tf.cast(parsed["label"], tf.int32)
 
-    # Second convolutional layer.
-    net = tf.layers.conv2d(inputs=net, name='layer_conv2',
-                           filters=32, kernel_size=[3, 3],
-                           padding='same', activation=tf.nn.relu)
-    net = tf.layers.max_pooling2d(inputs=net, pool_size=[2, 2], strides=2)
+    return {'image': image}, label
 
-    # Second convolutional layer.
-    net = tf.layers.conv2d(inputs=net, name='layer_conv3',
-                           filters=32, kernel_size=[3, 3],
-                           padding='same', activation=tf.nn.relu)
-    net = tf.layers.max_pooling2d(inputs=net, pool_size=[2, 2], strides=2)
 
-    # Flatten to a 2-rank tensor.
-    net = tf.contrib.layers.flatten(net)
-    # Eventually this should be replaced with:
-    # net = tf.layers.flatten(net)
+def input_fn(filenames):
+    dataset = tf.data.TFRecordDataset(filenames=filenames, num_parallel_reads=256)
+    dataset = dataset.apply(
+        tf.contrib.data.shuffle_and_repeat(1024, 1)
+    )
+    dataset = dataset.apply(
+        tf.contrib.data.map_and_batch(parser, batch_size)
+    )
+    # dataset = dataset.map(parser, num_parallel_calls=12)
+    # dataset = dataset.batch(batch_size=1000)
+    dataset = dataset.prefetch(buffer_size=2)
+    return dataset
 
-    # First fully-connected / dense layer.
-    # This uses the ReLU activation function.
-    net = tf.layers.dense(inputs=net, name='layer_fc1',
-                          units=128, activation=tf.nn.relu)
 
-    # Second fully-connected / dense layer.
-    # This is the last layer so it does not use an activation function.
-    net = tf.layers.dense(inputs=net, name='layer_fc_2',
-                          units=num_classes)
+# Create the neural network
+def conv_net(features, n_classes, dropout, reuse, is_training):
 
-    # Logits output of the neural network.
-    logit = net
+    # Define a scope for reusing the variables
+    with tf.variable_scope('ConvNet', reuse=reuse):
+        # TF Estimator input is a dict, in case of multiple inputs
+        x = features["image"]
 
-    # # Dense Layer
-    # pool2_flat = tf.reshape(net, [-1, 50 * 50 * 64])
-    # dense = tf.layers.dense(inputs=pool2_flat, units=1024, activation=tf.nn.relu)
-    # dropout = tf.layers.dropout(
-    #     inputs=dense, rate=0.4, training=mode == tf.estimator.ModeKeys.TRAIN)
+        # MNIST data input is a 1-D vector of 784 features (28*28 pixels)
+        # Reshape to match picture format [Height x Width x Channel]
+        # Tensor input become 4-D: [Batch Size, Height, Width, Channel]
+        x = tf.reshape(x, shape=[-1, 224, 224, 3])
 
-    # # Logit Layer
-    # logit = tf.layers.dense(inputs=dropout, units=2)
+        # Convolution Layer with 32 filters and a kernel size of 5
+        conv1 = tf.layers.conv2d(x, 32, 5, activation=tf.nn.tanh)
+        # Batch Normalization
+        conv1 = tf.layers.batch_normalization(inputs=conv1, training=is_training)
+        # Max Pooling (down-sampling) with strides of 2 and kernel size of 2
+        conv1 = tf.layers.max_pooling2d(conv1, 2, 2)
 
-    # Softmax output of the neural network.
-    y_pred = tf.nn.softmax(logits=logit)
+        # Convolution Layer with 64 filters and a kernel size of 3
+        conv2 = tf.layers.conv2d(conv1, 64, 3, activation=tf.nn.tanh)
+        # Batch Normalization
+        conv2 = tf.layers.batch_normalization(inputs=conv2, training=is_training)
+        # Max Pooling (down-sampling) with strides of 2 and kernel size of 2
+        conv2 = tf.layers.max_pooling2d(conv2, 2, 2)
 
-    # Classification output of the neural network.
-    y_pred_cls = tf.argmax(y_pred, axis=1)
+        conv3 = tf.layers.conv2d(conv2, 128, 3, activation=tf.nn.tanh)
+        # Batch Normalization
+        conv3 = tf.layers.batch_normalization(inputs=conv3, training=is_training)
+        # Max Pooling (down-sampling) with strides of 2 and kernel size of 2
+        conv3 = tf.layers.max_pooling2d(conv3, 2, 2)
 
+        conv4 = tf.layers.conv2d(conv3, 256, 3, activation=tf.nn.tanh)
+        # Batch Normalization
+        conv4 = tf.layers.batch_normalization(inputs=conv4, training=is_training)
+        # Max Pooling (down-sampling) with strides of 2 and kernel size of 2
+        conv4 = tf.layers.max_pooling2d(conv4, 2, 2)
+
+        conv5 = tf.layers.conv2d(conv4, 512, 3, activation=tf.nn.tanh)
+        # Batch Normalization
+        conv5 = tf.layers.batch_normalization(inputs=conv5, training=is_training)
+        # Max Pooling (down-sampling) with strides of 2 and kernel size of 2
+        conv5 = tf.layers.max_pooling2d(conv5, 2, 2)
+
+        # Flatten the data to a 1-D vector for the fully connected layer
+        fc1 = tf.layers.flatten(conv5)
+        # fc1 = tf.layers.batch_normalization(inputs=fc1, training=True)
+
+        # Fully connected layer (in tf contrib folder for now)
+        fc1 = tf.layers.dense(fc1, 1024)
+        fc1 = tf.layers.dropout(fc1, rate=dropout, training=is_training)
+
+        fc2 = tf.layers.dense(fc1, 1024)
+        fc2 = tf.layers.dropout(fc2, rate=dropout, training=is_training)
+        # fc1 = tf.layers.batch_normalization(inputs=fc1, training=is_training)
+
+        # Output layer, class prediction
+        out = tf.layers.dense(fc2, n_classes)
+
+    return out
+
+
+# Define the model function (following TF Estimator Template)
+def model_fn(features, labels, mode):
+    # Build the neural network
+    # Because Dropout have different behavior at training and prediction time, we
+    # need to create 2 distinct computation graphs that still share the same weights.
+    logits_train = conv_net(features, num_classes, dropout, reuse=False,
+                            is_training=True)
+    logits_test = conv_net(features, num_classes, dropout, reuse=True,
+                           is_training=False)
+
+    # Predictions
+    pred_classes = tf.argmax(logits_test, axis=1)
+    pred_probas = tf.nn.softmax(logits_test)
+
+    # If prediction mode, early return
     if mode == tf.estimator.ModeKeys.PREDICT:
-        # If the estimator is supposed to be in prediction-mode
-        # then use the predicted class-number that is output by
-        # the neural network. Optimization etc. is not needed.
-        spec = tf.estimator.EstimatorSpec(mode=mode,
-                                          predictions=y_pred_cls)
-    else:
-        # Otherwise the estimator is supposed to be in either
-        # training or evaluation-mode. Note that the loss-function
-        # is also required in Evaluation mode.
+        return tf.estimator.EstimatorSpec(mode, predictions=pred_classes)
 
-        # Define the loss-function to be optimized, by first
-        # calculating the cross-entropy between the output of
-        # the neural network and the true labels for the input data.
-        # This gives the cross-entropy for each image in the batch.
-        cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels,
-                                                                       logits=logit)
+        # Define loss and optimizer
+    loss_op = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(
+        logits=logits_train, labels=labels))
+    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+    train_op = optimizer.minimize(loss_op,
+                                  global_step=tf.train.get_global_step())
 
-        # Reduce the cross-entropy batch-tensor to a single number
-        # which can be used in optimization of the neural network.
-        loss = tf.reduce_mean(cross_entropy)
+    # Evaluate the accuracy of the model
+    acc_op = tf.metrics.accuracy(labels=labels, predictions=pred_classes)
 
-        # Define the optimizer for improving the neural network.
-        optimizer = tf.train.AdamOptimizer(learning_rate=params["learning_rate"])
-
-        # Get the TensorFlow op for doing a single optimization step.
-        train_op = optimizer.minimize(
-            loss=loss, global_step=tf.train.get_global_step())
-
-        # Define the evaluation metrics,
-        # in this case the classification accuracy.
-        metrics = \
-            {
-                "accuracy": tf.metrics.accuracy(labels, y_pred_cls)
-            }
-
-        # Wrap all of this in an EstimatorSpec.
-        spec = tf.estimator.EstimatorSpec(
-            mode=mode,
-            loss=loss,
-            train_op=train_op,
-            eval_metric_ops=metrics)
-
-    # predictions = {
-    #     # Generate predictions (for PREDICT and EVAL mode)
-    #     "classes": tf.argmax(input=logit, axis=1),
-    #     # Add `softmax_tensor` to the graph. It is used for PREDICT and by the
-    #     # `logging_hook`.
-    #     "probabilities": tf.nn.softmax(logit, name="softmax_tensor")
-    # }
-    #
-    # if mode == tf.estimator.ModeKeys.PREDICT:
-    #     return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
-    #
-    # # Calculate Loss (for both TRAIN and EVAL modes)
-    # onehot_labels = tf.one_hot(indices=tf.cast(labels, tf.int32), depth=2)
-    # loss = tf.losses.softmax_cross_entropy(onehot_labels=onehot_labels, logits=logit)
-    #
-    # if mode == tf.estimator.ModeKeys.TRAIN:
-    #     optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
-    #     train_op = optimizer.minimize(
-    #         loss=loss,
-    #         global_step=tf.train.get_global_step())
-    #     return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
+    # TF Estimators requires to return a EstimatorSpec, that specify
+    # the different ops for training, evaluating, ...
+    spec = tf.estimator.EstimatorSpec(
+        mode=mode,
+        predictions=pred_classes,
+        loss=loss_op,
+        train_op=train_op,
+        eval_metric_ops={'accuracy': acc_op})
 
     return spec
 
 
-
-
-
-#
-# data_path = '/home/tianyi/Desktop/skin/train/training.tfrecords'
-# image_pixel = 300
-#
-# images, labels = read_tfrecord(tfrecord_path=data_path,
-#                                pixel=image_pixel)
-#
-#
-# labels = tf.one_hot(labels, 2)
-#
-# # build_cnn = build_cnn(images=images, labels=labels, mode=tf.estimator.ModeKeys.PREDICT, params=0.0001)
-#
-# model = tf.estimator.Estimator(model_fn=build_cnn(images=images, labels=labels, mode=tf.estimator.ModeKeys.PREDICT, params=0.0001),
-#                                model_dir="/home/tianyi/Desktop/Blur_Detection/")
-#
-# # count = 0
-# # while (count < 100000):
-# #     model.train(input_fn=train_input_fn, steps=1000)
-# #     result = model.evaluate(input_fn=val_input_fn)
-# #     print(result)
-# #     print("Classification accuracy: {0:.2%}".format(result["accuracy"]))
-# #     sys.stdout.flush()
-# # count = count + 1
-
-
-params = {"learning_rate": 1e-4}
-
-img_size = 224
-num_channels = 3
-num_classes = 2
-
-
 def train_input_fn():
-    return read_tfrecord.input_fn(filenames=data_path_train, train=True)
+    return input_fn(filenames=["/home/tianyi/Desktop/cat/train/training.tfrecords",
+                               "/home/tianyi/Desktop/cat/validate/validation.tfrecords"])
 
 
-def test_input_fn():
-    return read_tfrecord.input_fn(filenames=data_path_val, train=False)
+def eval_input_fn():
+    return input_fn(filenames=["/home/tianyi/Desktop/cat/test/testing.tfrecords"])
 
 
-data_path_train = '/home/tianyi/Desktop/skin/train/training.tfrecords'
-data_path_val = '/home/tianyi/Desktop/skin/train/training.tfrecords'
+# Build the Estimator
 
 model = tf.estimator.Estimator(model_fn=model_fn,
-                               params=params,
-                               model_dir="/home/tianyi/Desktop/skin")
+                               model_dir="/home/tianyi/Desktop/cat/checkpoints")
 
-model.train(input_fn=train_input_fn, steps=200)
 
-# result = model.evaluate(input_fn=test_input_fn)
-# print(result)
-
+count = 0
+while count < 10000:
+    model.train(input_fn=train_input_fn, steps=100)
+    result = model.evaluate(input_fn=eval_input_fn)
+    print(result)
+    print("Classification accuracy: {0:.2%}".format(result["accuracy"]))
+    sys.stdout.flush()
+    count = count + 1
