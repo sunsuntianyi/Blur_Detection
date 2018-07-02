@@ -10,6 +10,14 @@ import numpy as np
 ##################################### Scroll down to "__main__" for reference #####################################
 
 ################################ Make sure TensorFlow version is up-to-date (1.8) ################################
+
+################################ TOTAL 4 .py files needs to be downloaded ################################
+
+# create_validation_and_test_data.py
+# load_images.py
+# read_tfrecord.py
+# run.py
+
 """
 
 
